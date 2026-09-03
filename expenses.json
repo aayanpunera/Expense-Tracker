@@ -1,0 +1,51 @@
+[
+  {
+    "id": "exp-101",
+    "description": "Grocery Supermarket",
+    "amount": 84.5,
+    "category": "Food",
+    "date": "2026-08-28"
+  },
+  {
+    "id": "exp-102",
+    "description": "Metro Monthly Transit Pass",
+    "amount": 45.0,
+    "category": "Transport",
+    "date": "2026-08-29"
+  },
+  {
+    "id": "exp-103",
+    "description": "High-Speed Fiber Internet",
+    "amount": 59.99,
+    "category": "Utilities",
+    "date": "2026-08-30"
+  },
+  {
+    "id": "exp-104",
+    "description": "Cinema IMAX Movie Tickets",
+    "amount": 32.0,
+    "category": "Entertainment",
+    "date": "2026-09-01"
+  },
+  {
+    "id": "exp-105",
+    "description": "Coffee Shop & Pastries",
+    "amount": 14.75,
+    "category": "Food",
+    "date": "2026-09-02"
+  },
+  {
+    "id": "exp-106",
+    "description": "Notebooks & Study Stationery",
+    "amount": 22.5,
+    "category": "Other",
+    "date": "2026-09-02"
+  },
+  {
+    "id": "exp-c9ec17b7",
+    "description": "Grossery",
+    "amount": 10000.0,
+    "category": "Utilities",
+    "date": "2026-09-03"
+  }
+]
