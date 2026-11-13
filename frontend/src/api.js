@@ -71,6 +71,7 @@ export const api = {
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request(`/transactions${query}`);
     },
+    getById: (id) => request(`/transactions/${id}`),
     create: (data) =>
       request('/transactions', {
         method: 'POST',

@@ -592,6 +592,15 @@ def api_create_transaction():
     }), 201
 
 
+@app.route("/api/transactions/<int:tx_id>", methods=["GET"])
+@auth_required
+def api_get_transaction(tx_id):
+    tx = db().execute("SELECT * FROM transactions WHERE id=? AND user_id=?", (tx_id, g.user["id"])).fetchone()
+    if not tx:
+        return jsonify({"success": False, "error": "Transaction not found."}), 404
+    return jsonify({"success": True, "transaction": dict(tx)})
+
+
 @app.route("/api/transactions/<int:tx_id>", methods=["PUT"])
 @auth_required
 def api_update_transaction(tx_id):

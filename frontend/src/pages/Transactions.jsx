@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
 import {
   Search,
   Filter,
@@ -7,7 +8,6 @@ import {
   Plus,
   Trash2,
   Edit3,
-  X,
 } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -30,9 +30,13 @@ const CATEGORIES = [
 
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Other'];
 
-export default function Transactions({ onOpenQuickAdd }) {
+export default function Transactions() {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const outletContext = useOutletContext();
+  const onOpenQuickAdd = outletContext?.onOpenQuickAdd || (() => {});
+  const refreshKey = outletContext?.refreshKey || 0;
+
   const currency = user?.currency || '₹';
 
   const [loading, setLoading] = useState(true);
@@ -47,17 +51,6 @@ export default function Transactions({ onOpenQuickAdd }) {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [sort, setSort] = useState('date_desc');
-
-  // Edit modal state
-  const [editingTx, setEditingTx] = useState(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editAmount, setEditAmount] = useState('');
-  const [editKind, setEditKind] = useState('expense');
-  const [editCategory, setEditCategory] = useState('Food & Dining');
-  const [editMethod, setEditMethod] = useState('UPI');
-  const [editDate, setEditDate] = useState('');
-  const [editNote, setEditNote] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -81,7 +74,7 @@ export default function Transactions({ onOpenQuickAdd }) {
         });
       }
     } catch (err) {
-      addToast(err.message || 'Failed to fetch transactions', 'error');
+      addToast(err.message || 'Failed to fetch transactions from database', 'error');
     } finally {
       setLoading(false);
     }
@@ -89,55 +82,16 @@ export default function Transactions({ onOpenQuickAdd }) {
 
   useEffect(() => {
     fetchTransactions();
-  }, [fetchTransactions]);
+  }, [fetchTransactions, refreshKey]);
 
   const handleDelete = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to delete '${title}'?`)) return;
+    if (!window.confirm(`Are you sure you want to delete '${title}' from the database?`)) return;
     try {
       await api.transactions.delete(id);
-      addToast('Transaction deleted.', 'info');
+      addToast('Transaction deleted from database.', 'info');
       fetchTransactions();
     } catch (err) {
       addToast(err.message || 'Failed to delete transaction', 'error');
-    }
-  };
-
-  const openEditModal = (t) => {
-    setEditingTx(t);
-    setEditTitle(t.title);
-    setEditAmount(t.amount);
-    setEditKind(t.kind);
-    setEditCategory(t.category);
-    setEditMethod(t.payment_method);
-    setEditDate(t.transaction_date);
-    setEditNote(t.note || '');
-  };
-
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    if (!editTitle.trim() || parseFloat(editAmount) <= 0) {
-      addToast('Title and positive amount required.', 'error');
-      return;
-    }
-
-    setSavingEdit(true);
-    try {
-      await api.transactions.update(editingTx.id, {
-        title: editTitle.trim(),
-        amount: parseFloat(editAmount),
-        kind: editKind,
-        category: editCategory,
-        payment_method: editMethod,
-        transaction_date: editDate,
-        note: editNote.trim(),
-      });
-      addToast('Transaction updated successfully!', 'success');
-      setEditingTx(null);
-      fetchTransactions();
-    } catch (err) {
-      addToast(err.message || 'Failed to update transaction', 'error');
-    } finally {
-      setSavingEdit(false);
     }
   };
 
@@ -155,9 +109,9 @@ export default function Transactions({ onOpenQuickAdd }) {
     <div>
       <div className="page-header">
         <div className="header-meta">
-          <p className="eyebrow">Financial Record Book</p>
+          <p className="eyebrow">Database Ledger</p>
           <h1>Transactions Ledger</h1>
-          <p className="subtitle">Search, filter, manage, and export your entire financial history.</p>
+          <p className="subtitle">Real-time database queries with live search, filters, and downloads.</p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <a
@@ -180,17 +134,17 @@ export default function Transactions({ onOpenQuickAdd }) {
             <FileText size={14} />
             PDF Statement
           </a>
-          <button className="btn btn-primary btn-sm" onClick={() => onOpenQuickAdd('expense')}>
+          <Link to="/transactions/new" className="btn btn-primary btn-sm">
             <Plus size={15} strokeWidth={2.5} />
-            + Add Transaction
-          </button>
+            + Add Transaction Page
+          </Link>
         </div>
       </div>
 
       {/* Summary Pills Bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <span className="badge badge-neutral" style={{ padding: '6px 12px', fontSize: 12.5 }}>
-          Showing <strong>{stats.count}</strong> transactions
+          Showing <strong>{stats.count}</strong> transactions in database
         </span>
         <span className="badge badge-income" style={{ padding: '6px 12px', fontSize: 12.5 }}>
           Income: +{currency}{stats.total_income.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -211,7 +165,7 @@ export default function Transactions({ onOpenQuickAdd }) {
           <div className="search-wrap">
             <input
               className="input-field"
-              placeholder="Search title or note..."
+              placeholder="Search title or note in database..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -283,7 +237,7 @@ export default function Transactions({ onOpenQuickAdd }) {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>
-            Loading transactions...
+            Loading transactions from database...
           </div>
         ) : transactions.length > 0 ? (
           <div className="table-responsive">
@@ -329,14 +283,14 @@ export default function Transactions({ onOpenQuickAdd }) {
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button
+                        <Link
+                          to={`/transactions/${t.id}/edit`}
                           className="btn btn-secondary btn-sm"
-                          onClick={() => openEditModal(t)}
-                          title="Edit transaction"
+                          title="Edit transaction page"
                         >
                           <Edit3 size={13} />
                           Edit
-                        </button>
+                        </Link>
                         <button
                           className="btn btn-danger btn-sm"
                           onClick={() => handleDelete(t.id, t.title)}
@@ -358,130 +312,19 @@ export default function Transactions({ onOpenQuickAdd }) {
               No transactions match your search
             </h3>
             <p style={{ fontSize: 13, maxWidth: 320, margin: '0 auto 18px' }}>
-              Try clearing filters or adjusting your date range to see more entries.
+              Try clearing filters or inserting a new transaction into your database.
             </p>
-            <button className="btn btn-secondary btn-sm" onClick={handleResetFilters}>
-              Clear All Filters
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+              <button className="btn btn-secondary btn-sm" onClick={handleResetFilters}>
+                Clear All Filters
+              </button>
+              <Link to="/transactions/new" className="btn btn-primary btn-sm">
+                + Insert New Expense
+              </Link>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Edit Modal */}
-      {editingTx && (
-        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setEditingTx(null)}>
-          <div className="modal-dialog">
-            <div className="modal-header">
-              <div>
-                <span className="badge badge-neutral" style={{ marginBottom: 6 }}>Update Record</span>
-                <h2 style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.03em' }}>Edit Transaction</h2>
-              </div>
-              <button className="modal-close-btn" onClick={() => setEditingTx(null)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit}>
-              <div className="type-toggle-pills">
-                <button
-                  type="button"
-                  className={editKind === 'expense' ? 'active-expense' : ''}
-                  onClick={() => setEditKind('expense')}
-                >
-                  Expense
-                </button>
-                <button
-                  type="button"
-                  className={editKind === 'income' ? 'active-income' : ''}
-                  onClick={() => setEditKind('income')}
-                >
-                  Income
-                </button>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Description / Title</label>
-                <input
-                  className="input-field"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Amount ({currency})</label>
-                  <input
-                    className="input-field"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={editAmount}
-                    onChange={(e) => setEditAmount(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Date</label>
-                  <input
-                    className="input-field"
-                    type="date"
-                    value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select
-                    className="select-field"
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Payment Method</label>
-                  <select
-                    className="select-field"
-                    value={editMethod}
-                    onChange={(e) => setEditMethod(e.target.value)}
-                  >
-                    {PAYMENT_METHODS.map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Notes</label>
-                <input
-                  className="input-field"
-                  value={editNote}
-                  onChange={(e) => setEditNote(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditingTx(null)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={savingEdit}>
-                  {savingEdit ? 'Updating...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

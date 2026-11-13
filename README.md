@@ -13,28 +13,33 @@ Expense Tracker/
 │   ├── expenses.db            # Local SQLite database
 │   └── requirements.txt       # Backend dependencies (Flask, Flask-CORS, ReportLab)
 │
-├── frontend/                  # React Single-Page Application (Vite)
-│   ├── package.json           # Dependencies (React 19, Lucide React, Chart.js)
+├── frontend/                  # React Multi-Page Application (React Router + Vite)
+│   ├── package.json           # Dependencies (React 19, React Router 7, Lucide React, Chart.js)
 │   ├── vite.config.js         # Vite configuration with /api proxy to backend
 │   ├── src/
 │   │   ├── api.js             # Centralized API service for backend communication
+│   │   ├── App.jsx            # Multi-page BrowserRouter routes with protected Layout wrapper
 │   │   ├── context/
 │   │   │   ├── AuthContext.jsx  # Token authentication & session state
 │   │   │   ├── ThemeContext.jsx # Dark / Light mode toggle
 │   │   │   └── ToastContext.jsx # Reactive notifications
 │   │   ├── components/
-│   │   │   ├── Sidebar.jsx    # Responsive navigation sidebar
-│   │   │   ├── Topbar.jsx     # Navigation header with + Quick Add trigger
+│   │   │   ├── Layout.jsx     # Shared layout shell with Outlet, Sidebar & Topbar
+│   │   │   ├── Sidebar.jsx    # Responsive navigation sidebar with NavLink routes
+│   │   │   ├── Topbar.jsx     # Navigation header with + Quick Add trigger & dynamic page title
 │   │   │   └── QuickAddModal.jsx # Global fast expense inserter (Press 'N')
 │   │   └── pages/
-│   │       ├── Dashboard.jsx  # Command center with 4 KPIs & Express Inserter
-│   │       ├── Transactions.jsx # Ledger with search, multi-filters & CSV/PDF
-│   │       ├── Budgets.jsx    # Category limits & health progress bars
-│   │       ├── Goals.jsx      # Savings milestones & one-click deposits
-│   │       ├── Recurring.jsx  # Subscriptions with active/paused controls
-│   │       ├── Reports.jsx    # Category doughnut & cash flow charts
-│   │       ├── Settings.jsx   # Currencies (₹, $, €, £), themes & JSON backup
-│   │       └── Auth.jsx       # Login & Account Registration
+│   │       ├── Dashboard.jsx        # Route `/` — Command center with 4 KPIs & Express Inserter
+│   │       ├── Transactions.jsx     # Route `/transactions` — Ledger with search, multi-filters & CSV/PDF
+│   │       ├── NewTransaction.jsx   # Route `/transactions/new` — Dedicated insertion page into SQLite
+│   │       ├── EditTransaction.jsx  # Route `/transactions/:id/edit` — Dedicated edit page with live DB sync
+│   │       ├── Budgets.jsx          # Route `/budgets` — Category limits & health progress bars
+│   │       ├── Goals.jsx            # Route `/goals` — Savings milestones & one-click deposits
+│   │       ├── Recurring.jsx        # Route `/recurring` — Subscriptions with active/paused controls
+│   │       ├── Reports.jsx          # Route `/reports` — Category doughnut & cash flow charts
+│   │       ├── Settings.jsx         # Route `/settings` — Currencies (₹, $, €, £), themes & DB backups
+│   │       ├── Login.jsx            # Route `/login` — Dedicated sign-in page
+│   │       └── Register.jsx         # Route `/register` — Dedicated user creation page
 │   └── dist/                  # Production build output
 │
 ├── app.py                     # Root runner (serves backend & React build on port 5000)

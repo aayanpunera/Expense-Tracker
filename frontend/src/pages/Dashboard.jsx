@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
 import {
   TrendingUp,
   TrendingDown,
@@ -14,9 +15,13 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
+export default function Dashboard() {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const outletContext = useOutletContext();
+  const onOpenQuickAdd = outletContext?.onOpenQuickAdd || (() => {});
+  const refreshKey = outletContext?.refreshKey || 0;
+
   const currency = user?.currency || '₹';
 
   const [loading, setLoading] = useState(true);
@@ -44,7 +49,7 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
 
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+  }, [fetchDashboard, refreshKey]);
 
   const handleQuickAddPreset = (val) => {
     const current = parseFloat(quickAmount) || 0;
@@ -69,7 +74,7 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
         transaction_date: new Date().toISOString().slice(0, 10),
       });
 
-      addToast('Expense logged successfully!', 'success');
+      addToast('Expense inserted directly into SQLite database!', 'success');
       setQuickTitle('');
       setQuickAmount('');
       fetchDashboard();
@@ -83,7 +88,7 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-        <p style={{ fontSize: 16, fontWeight: 600 }}>Loading financial overview...</p>
+        <p style={{ fontSize: 16, fontWeight: 600 }}>Loading real-time financial database...</p>
       </div>
     );
   }
@@ -103,7 +108,7 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
         <div className="header-meta">
           <p className="eyebrow">Financial Command Center</p>
           <h1>Welcome back, {user?.name || 'Aayan'}</h1>
-          <p className="subtitle">Here is what is happening with your money this month.</p>
+          <p className="subtitle">Real-time financial tracking connected to your database.</p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button className="btn btn-secondary btn-sm" onClick={() => onOpenQuickAdd('income')}>
@@ -189,11 +194,11 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <strong style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-              Express Expense Inserter
+              Express Database Inserter
             </strong>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Quickly log a spend right here without leaving your overview</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Quickly insert an expense directly into the database without navigating away</p>
           </div>
-          <span className="badge badge-neutral">Quick Log</span>
+          <span className="badge badge-neutral">Database Sync</span>
         </div>
 
         <form onSubmit={handleExpressSubmit} className="quick-log-form">
@@ -237,7 +242,7 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
           </select>
 
           <button type="submit" className="btn btn-primary" disabled={submittingQuick} style={{ height: 42 }}>
-            {submittingQuick ? 'Logging...' : '+ Log Expense'}
+            {submittingQuick ? 'Saving...' : '+ Log Expense'}
           </button>
         </form>
 
@@ -262,12 +267,12 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
         <div className="card">
           <div className="card-header">
             <div className="card-title-box">
-              <h2>Recent Transactions</h2>
-              <p>Latest expenditures and deposits</p>
+              <h2>Recent Database Transactions</h2>
+              <p>Latest expenditures and deposits queried from SQLite</p>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('transactions')}>
+            <Link to="/transactions" className="btn btn-ghost btn-sm">
               View All →
-            </button>
+            </Link>
           </div>
 
           {recent.length > 0 ? (
@@ -310,14 +315,14 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
             <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>📊</div>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)', marginBottom: 6 }}>
-                No transactions recorded yet
+                No database records yet
               </h3>
               <p style={{ fontSize: 13, maxWidth: 320, margin: '0 auto 18px' }}>
-                Start inserting your daily expenses above or load demo data in Settings to preview your financial insights.
+                Start inserting your daily expenses above or load demo data in Settings to populate your database.
               </p>
-              <button className="btn btn-primary btn-sm" onClick={() => onOpenQuickAdd('expense')}>
+              <Link to="/transactions/new" className="btn btn-primary btn-sm">
                 + Log First Expense
-              </button>
+              </Link>
             </div>
           )}
         </div>
@@ -331,9 +336,9 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
                 <h2>Budget Health</h2>
                 <p>Current month spending caps</p>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('budgets')}>
+              <Link to="/budgets" className="btn btn-ghost btn-sm">
                 Manage
-              </button>
+              </Link>
             </div>
 
             {budgets.length > 0 ? (
@@ -354,7 +359,7 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
                           {pct >= 100 ? (
                             <span className="badge badge-expense" style={{ fontSize: 11 }}>Exceeded ({pct}%)</span>
                           ) : pct >= 80 ? (
-                            <span className="badge badge-warning" style={{ fontSize: 11 }}>{pct}%</span>
+                            <span className="badge badge-warning" style={{ fontSize: 11 }}>{{pct}}%</span>
                           ) : (
                             <span className="badge badge-income" style={{ fontSize: 11 }}>{pct}%</span>
                           )}
@@ -373,9 +378,9 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
             ) : (
               <div style={{ textAlign: 'center', padding: '28px 12px', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 13, marginBottom: 14 }}>No category limits configured for this month.</p>
-                <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('budgets')}>
+                <Link to="/budgets" className="btn btn-secondary btn-sm">
                   + Set Monthly Budget
-                </button>
+                </Link>
               </div>
             )}
           </div>
@@ -387,9 +392,9 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
                 <h2>Savings Goals</h2>
                 <p>Target milestones</p>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('goals')}>
+              <Link to="/goals" className="btn btn-ghost btn-sm">
                 View All
-              </button>
+              </Link>
             </div>
 
             {goals.length > 0 ? (
@@ -424,9 +429,9 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
             ) : (
               <div style={{ textAlign: 'center', padding: '24px 12px', color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 13, marginBottom: 12 }}>Create savings goals to track future funds.</p>
-                <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('goals')}>
+                <Link to="/goals" className="btn btn-secondary btn-sm">
                   + Create Goal
-                </button>
+                </Link>
               </div>
             )}
           </div>
@@ -439,9 +444,9 @@ export default function Dashboard({ onOpenQuickAdd, onNavigate }) {
                   <h2>Upcoming Due Dates</h2>
                   <p>Next 14 days schedules</p>
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('recurring')}>
+                <Link to="/recurring" className="btn btn-ghost btn-sm">
                   All
-                </button>
+                </Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recurring.map((item) => (

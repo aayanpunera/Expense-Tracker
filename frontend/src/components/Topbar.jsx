@@ -1,18 +1,23 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Menu, Plus, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function Topbar({ currentPage, onOpenQuickAdd, toggleMobileMenu }) {
+export default function Topbar({ onOpenQuickAdd, toggleMobileMenu }) {
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
 
-  const titleMap = {
-    dashboard: 'Dashboard',
-    transactions: 'Transactions Ledger',
-    budgets: 'Monthly Budgets',
-    goals: 'Savings Goals',
-    recurring: 'Recurring Bills',
-    reports: 'Insights & Analytics',
-    settings: 'Settings & Workspace',
+  const getPageTitle = (pathname) => {
+    if (pathname === '/' || pathname === '/dashboard') return 'Dashboard';
+    if (pathname === '/transactions') return 'Transactions Ledger';
+    if (pathname === '/transactions/new') return 'New Transaction';
+    if (pathname.startsWith('/transactions/') && pathname.endsWith('/edit')) return 'Edit Transaction';
+    if (pathname === '/budgets') return 'Monthly Budgets';
+    if (pathname === '/goals') return 'Savings Goals';
+    if (pathname === '/recurring') return 'Recurring Bills';
+    if (pathname === '/reports') return 'Insights & Analytics';
+    if (pathname === '/settings') return 'Settings & Workspace';
+    return 'SpendWise';
   };
 
   const monthStr = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -24,7 +29,7 @@ export default function Topbar({ currentPage, onOpenQuickAdd, toggleMobileMenu }
           <Menu size={22} />
         </button>
         <div className="page-title-box">
-          <h1>{titleMap[currentPage] || 'Overview'}</h1>
+          <h1>{getPageTitle(location.pathname)}</h1>
           <p>{monthStr}</p>
         </div>
       </div>

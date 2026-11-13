@@ -1,37 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import Sidebar from './components/Sidebar';
-import Topbar from './components/Topbar';
-import QuickAddModal from './components/QuickAddModal';
+import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import NewTransaction from './pages/NewTransaction';
+import EditTransaction from './pages/EditTransaction';
 import Budgets from './pages/Budgets';
 import Goals from './pages/Goals';
 import Recurring from './pages/Recurring';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import Auth from './pages/Auth';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
-export default function App() {
+function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [quickAddType, setQuickAddType] = useState('expense');
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // Global 'N' keyboard shortcut for Quick Add
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if ((e.key === 'n' || e.key === 'N') && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
-        e.preventDefault();
-        setQuickAddType('expense');
-        setQuickAddOpen(true);
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   if (loading) {
     return (
@@ -42,75 +26,75 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <Auth />;
+    return <Navigate to="/login" replace />;
   }
 
-  const handleOpenQuickAdd = (type = 'expense') => {
-    setQuickAddType(type);
-    setQuickAddOpen(true);
-  };
+  return children;
+}
 
-  const handleTransactionAdded = () => {
-    setRefreshTrigger((prev) => prev + 1);
-  };
+function PublicOnlyRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg-app)', color: 'var(--text-muted)' }}>
+        <p style={{ fontSize: 16, fontWeight: 600 }}>Loading SpendWise...</p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+export default function App() {
   return (
-    <div className="app-layout">
-      {/* Sidebar Navigation */}
-      <Sidebar
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-      />
-
-      {/* Main Container */}
-      <div className="app-container">
-        <Topbar
-          currentPage={currentPage}
-          onOpenQuickAdd={handleOpenQuickAdd}
-          toggleMobileMenu={() => setIsSidebarOpen((prev) => !prev)}
+    <BrowserRouter>
+      <Routes>
+        {/* Public authentication routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute>
+              <Register />
+            </PublicOnlyRoute>
+          }
         />
 
-        <main className="main-wrapper">
-          {currentPage === 'dashboard' && (
-            <Dashboard
-              key={refreshTrigger}
-              onOpenQuickAdd={handleOpenQuickAdd}
-              onNavigate={setCurrentPage}
-            />
-          )}
-          {currentPage === 'transactions' && (
-            <Transactions
-              key={refreshTrigger}
-              onOpenQuickAdd={handleOpenQuickAdd}
-            />
-          )}
-          {currentPage === 'budgets' && (
-            <Budgets key={refreshTrigger} />
-          )}
-          {currentPage === 'goals' && (
-            <Goals key={refreshTrigger} />
-          )}
-          {currentPage === 'recurring' && (
-            <Recurring key={refreshTrigger} />
-          )}
-          {currentPage === 'reports' && (
-            <Reports key={refreshTrigger} />
-          )}
-          {currentPage === 'settings' && (
-            <Settings />
-          )}
-        </main>
-      </div>
+        {/* Protected app routes wrapped inside the persistent Layout shell */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="transactions/new" element={<NewTransaction />} />
+          <Route path="transactions/:id/edit" element={<EditTransaction />} />
+          <Route path="budgets" element={<Budgets />} />
+          <Route path="goals" element={<Goals />} />
+          <Route path="recurring" element={<Recurring />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
 
-      {/* Global Quick-Add Modal */}
-      <QuickAddModal
-        isOpen={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
-        defaultType={quickAddType}
-        onTransactionAdded={handleTransactionAdded}
-      />
-    </div>
+        {/* Fallback wildcard to root */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
