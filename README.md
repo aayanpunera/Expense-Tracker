@@ -1,165 +1,119 @@
 # SpendWise — Personal Expense & Finance Tracker
 
-SpendWise is a full-stack personal finance and expense tracking web application built with **Python (Flask)**, **SQLite**, and a modern, responsive design system. It enables effortless logging of daily expenditures and deposits, automated recurring schedules, monthly category budget tracking with visual health meters, long-term savings goals, interactive Chart.js analytics, and automated PDF & CSV export generation.
+SpendWise is a dynamic, full-stack personal finance application structured with dedicated **`frontend`** (React + Vite) and **`backend`** (Python + Flask REST API) architectures. It delivers instant expense insertion, automated recurring bills, category budget monitoring with health meters, milestones savings tracking, Chart.js analytics, and formatted statement exports (PDF & CSV).
+
+---
+
+## Architecture Overview
+
+```
+Expense Tracker/
+├── backend/                   # Python / Flask REST API
+│   ├── app.py                 # REST API endpoints, models & ReportLab PDF generator
+│   ├── expenses.db            # Local SQLite database
+│   └── requirements.txt       # Backend dependencies (Flask, Flask-CORS, ReportLab)
+│
+├── frontend/                  # React Single-Page Application (Vite)
+│   ├── package.json           # Dependencies (React 19, Lucide React, Chart.js)
+│   ├── vite.config.js         # Vite configuration with /api proxy to backend
+│   ├── src/
+│   │   ├── api.js             # Centralized API service for backend communication
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx  # Token authentication & session state
+│   │   │   ├── ThemeContext.jsx # Dark / Light mode toggle
+│   │   │   └── ToastContext.jsx # Reactive notifications
+│   │   ├── components/
+│   │   │   ├── Sidebar.jsx    # Responsive navigation sidebar
+│   │   │   ├── Topbar.jsx     # Navigation header with + Quick Add trigger
+│   │   │   └── QuickAddModal.jsx # Global fast expense inserter (Press 'N')
+│   │   └── pages/
+│   │       ├── Dashboard.jsx  # Command center with 4 KPIs & Express Inserter
+│   │       ├── Transactions.jsx # Ledger with search, multi-filters & CSV/PDF
+│   │       ├── Budgets.jsx    # Category limits & health progress bars
+│   │       ├── Goals.jsx      # Savings milestones & one-click deposits
+│   │       ├── Recurring.jsx  # Subscriptions with active/paused controls
+│   │       ├── Reports.jsx    # Category doughnut & cash flow charts
+│   │       ├── Settings.jsx   # Currencies (₹, $, €, £), themes & JSON backup
+│   │       └── Auth.jsx       # Login & Account Registration
+│   └── dist/                  # Production build output
+│
+├── app.py                     # Root runner (serves backend & React build on port 5000)
+├── requirements.txt           # Root dependencies
+└── .gitignore                 # Ignores node_modules, .venv, and local databases
+```
 
 ---
 
 ## Key Features
 
-### 1. Fast & Effortless Expense Insertion
-- **Express Dashboard Inserter**: Log any spend directly from your overview homepage in a single click with preset quick-amounts (+₹50, +₹100, +₹200, +₹500, +₹1,000).
-- **Global Quick-Add Modal**: Hit `+ Quick Add` or press the keyboard shortcut **`N`** anywhere in the application to immediately log an expense without navigating away.
-- **Dedicated Transaction Studio**: Comprehensive form with expense/income toggle, amount inputs, date selection, categorized icons, payment methods, and notes.
-
-### 2. Comprehensive Financial Tracking & Record Management
-- **Dashboard Command Center**:
-  - Live Net Balance, Monthly Expenses, Monthly Income, and Savings Rate percentage.
-  - Average Daily Spend metric and top spending category detection.
-  - Recent transactions list with color-coded amount badges (`+` income, `−` expense).
-  - Upcoming recurring bill alerts due within the next 14 days.
-- **Transactions Ledger**:
-  - Real-time search across titles and notes.
-  - Multi-criteria filtering by Type (Income/Expense), Category, Payment Method, Date Range, and Amount Range.
-  - Dynamic sort order (Newest, Oldest, Highest, Lowest, Title).
-  - Summary metrics bar showing filtered totals, income, expenses, and net cash flow.
-  - Edit and delete records with safety confirmation dialogs.
-- **Monthly Category Budgets**:
-  - Set customized spending limits for each category (Food, Travel, Bills, Shopping, etc.).
-  - Visual status progress bars with dynamic color transitions (Safe Green &lt; 75%, Warning Amber 75–99%, Over-Budget Red &ge; 100%).
-  - Remaining buffer and over-budget calculations.
-- **Savings Goals**:
-  - Track progress toward savings milestones (Emergency Fund, Vacation, Gadgets).
-  - Milestone countdown, percentage completion, and one-click deposit/contribution forms.
-- **Recurring Transactions & Subscriptions**:
-  - Automates repeat expenses (Rent, Netflix, Gym, EMIs, Broadband) on weekly or monthly schedules.
-  - Auto-records entries when their due date arrives.
-  - Active and Paused status toggles.
-- **Visual Insights & Reports**:
-  - Interactive Doughnut Chart showing spending distribution across categories.
-  - Grouped Bar Chart comparing monthly Income vs Expenses.
-  - Payment Method breakdown chart (UPI, Cards, Cash, Bank Transfer).
-  - Category ranking table with exact percentage shares of total outflow.
-
-### 3. Exports, Backups & Tools
-- **PDF Statements**: Formatted statement generation via ReportLab including summary statistics and ledger tables.
-- **CSV Ledger Export**: Standard spreadsheet-compatible transaction history export.
-- **JSON Backup & Restore**: One-click full data export for portability and safety.
-- **Demo Data Seeder**: Built-in 1-click sample data generator in Settings to quickly preview charts and analytics.
-
-### 4. Modern UI & Aesthetics
-- Responsive dual-theme design system (**Light Mode** and **Dark Mode**) with instant switching.
-- Refined typography using *Plus Jakarta Sans* and *Inter*.
-- Clean card elevations, smooth micro-interactions, and mobile-friendly navigation.
-- Multi-currency support (₹ INR, $ USD, € EUR, £ GBP, A$ AUD, C$ CAD, ¥ JPY, AED).
+1. **Express & Global Expense Insertion**:
+   - **Express Inserter** directly on the Dashboard with one-click presets (`+₹50`, `+₹100`, `+₹200`, `+₹500`, `+₹1,000`).
+   - **Global Quick-Add Modal**: Hit `+ Quick Add` or press the **`N`** key anywhere in the app to open the modal without losing your current view.
+2. **Dashboard Overview**:
+   - 4 Live KPIs: Net Balance, Monthly Expenses (with daily average), Monthly Income, and Savings Rate.
+   - Top spending category detection and upcoming recurring reminders for the next 14 days.
+3. **Filterable Ledger**:
+   - Real-time search by title or note.
+   - Multi-filter by Category, Payment Method, Type (Income/Expense), Date Range, and Sorting.
+   - Direct CSV and PDF statement downloads.
+4. **Monthly Category Budgets**:
+   - Category limits with Safe (&lt;75%), Warning (75–99%), and Exceeded (&ge;100%) color meters.
+5. **Savings Milestones**:
+   - Progress percentage tracking, target date countdowns, and inline deposits with celebration confetti.
+6. **Recurring Schedules**:
+   - Weekly and monthly repeat bills with auto-recorder and active/paused toggles.
+7. **Visual Analytics**:
+   - Chart.js category doughnut chart, monthly income vs. expense grouped bar chart, and payment methods breakdown.
+8. **Multi-Currency & Themes**:
+   - Support for ₹ (INR), $ (USD), € (EUR), £ (GBP), A$ (AUD), C$ (CAD), ¥ (JPY), and AED.
+   - Persistent Dark Mode and Light Mode.
 
 ---
 
-## Tech Stack
+## How to Run the Application
 
-| Layer | Technology |
-|---|---|
-| **Backend** | Python 3.10+, Flask 3.0+ |
-| **Database** | SQLite3 (thread-local with foreign keys enabled) |
-| **Document Generation** | ReportLab 4.0+ (PDF statements), Python `csv` |
-| **Frontend UI** | Modern HTML5, Vanilla CSS3 (Custom Properties & Responsive Grid), Vanilla JavaScript |
-| **Charts & Visualization** | Chart.js 4.4+ |
-| **Authentication** | Werkzeug Security (Scrypt password hashing), Session-based auth |
+### Option A: Complete App via Root Runner (Recommended)
+
+1. Make sure Python virtual environment is activated:
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   ```
+2. Start the application:
+   ```powershell
+   python app.py
+   ```
+3. Open your browser at:
+   **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
 
 ---
 
-## Quick Start & Installation
+### Option B: Independent Frontend & Backend (Development Mode)
 
-### 1. Clone & Enter Project Directory
+#### 1. Start the Flask Backend (Terminal 1)
 ```powershell
-git clone https://github.com/aayanpunera/Expense-Tracker.git
-cd "Expense-Tracker"
-```
-
-### 2. Set Up Python Virtual Environment
-```powershell
-# Create virtual environment
-python -m venv .venv
-
-# Activate on Windows PowerShell
-.\.venv\Scripts\Activate.ps1
-
-# (Or on Command Prompt: .\.venv\Scripts\activate.bat)
-# (Or on macOS/Linux: source .venv/bin/activate)
-```
-
-### 3. Install Dependencies
-```powershell
-pip install -r requirements.txt
-```
-
-### 4. Run the Application
-```powershell
+cd backend
 python app.py
 ```
+*Backend runs on `http://127.0.0.1:5000` with CORS enabled.*
 
-Open your browser and navigate to:
+#### 2. Start the React Frontend (Terminal 2)
+```powershell
+cd frontend
+npm run dev
 ```
-http://127.0.0.1:5000
-```
-- Sign up for a new account or sign in to start tracking your finances!
-- You can also go to **Settings** and click **"Load Sample Data Pack"** to populate realistic preview records immediately.
-
----
-
-## Project Structure
-
-```
-Expense Tracker/
-├── .gitignore              # Ignores .venv, cache, and local databases
-├── app.py                  # Core Flask application, DB models, API & controllers
-├── expenses.db             # Local SQLite database (auto-generated on launch)
-├── requirements.txt        # Python package dependencies
-├── README.md               # Project documentation
-├── static/
-│   ├── css/
-│   │   └── style.css       # Full design system (Light & Dark themes, responsive layout)
-│   └── js/
-│       ├── app.js          # Theme switcher, modals, keyboard shortcuts, toasts
-│       └── reports.js      # Chart.js analytics visualizations
-└── templates/
-    ├── base.html           # Master layout, navigation sidebar, quick-add modal
-    ├── auth.html           # Authentication card (Login / Register)
-    ├── dashboard.html      # Overview cockpit, express inserter, KPI cards
-    ├── transactions.html   # Full filterable ledger, CSV/PDF actions
-    ├── transaction_form.html # Dedicated add/edit transaction form
-    ├── budgets.html        # Category budget limits and health meters
-    ├── goals.html          # Savings milestones with progress trackers
-    ├── recurring.html      # Subscriptions and recurring bills
-    ├── reports.html        # Visual analytics, charts, and breakdown tables
-    └── settings.html       # Profile preferences, currency, and data backups
-```
+*React app runs on `http://localhost:5173` with instant hot-reloading and automated API proxying.*
 
 ---
 
 ## Git Workflow & Remote Repository Sync
 
-Your local repository is connected to GitHub at:
-`https://github.com/aayanpunera/Expense-Tracker.git` (tracking branch: `origin/main`).
+Your project is connected to GitHub at:
+`https://github.com/aayanpunera/Expense-Tracker.git` on branch `main`.
 
-### How to update and push changes to GitHub:
-
-Whenever you make improvements or updates to your project, run:
-
+### To sync updates to GitHub:
 ```powershell
-# 1. Check status of modified files
 git status
-
-# 2. Stage changes (excluding ignored .venv and local databases)
 git add .
-
-# 3. Commit with a descriptive message
-git commit -m "feat: description of your updates"
-
-# 4. Push to GitHub
+git commit -m "feat: your update message"
 git push origin main
-```
-
-To fetch any remote changes:
-```powershell
-git pull origin main
 ```
