@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block page_title %}Savings Goals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="header-meta">
+    <p class="eyebrow">Milestones & Targets</p>
+    <h1>Savings Goals</h1>
+    <p class="subtitle">Turn your dreams and safety nets into measurable milestones.</p>
+  </div>
+</div>
+
+<!-- Summary Cards for Goals -->
+<div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Total Target</span>
+      <div class="stat-icon">🏁</div>
+    </div>
+    <div class="stat-value">{{ currency }}{{ '{:,.2f}'.format(total_target) }}</div>
+    <div class="stat-meta">Total combined savings target</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Total Saved</span>
+      <div class="stat-icon" style="background:var(--income-subtle); color:var(--income);">🌱</div>
+    </div>
+    <div class="stat-value" style="color:var(--income);">{{ currency }}{{ '{:,.2f}'.format(total_saved) }}</div>
+    <div class="stat-meta">Accumulated across all goals</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Overall Completion</span>
+      <div class="stat-icon" style="background:var(--accent-subtle); color:var(--accent);">⭐</div>
+    </div>
+    <div class="stat-value">{{ overall_progress }}%</div>
+    <div class="stat-meta">{{ currency }}{{ '{:,.0f}'.format([total_target - total_saved, 0]|max) }} remaining</div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Create Goal Form -->
+  <div class="card" style="height:fit-content;">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Create Savings Goal</h2>
+        <p>Set a new financial target</p>
+      </div>
+    </div>
+
+    <form method="post" action="/goals" class="stack-form">
+      <div class="form-group">
+        <label class="form-label">Goal Name</label>
+        <input class="input-field" name="name" required placeholder="e.g. Emergency Fund, New Car, Goa Vacation">
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Target Amount ({{ currency }})</label>
+          <input class="input-field" name="target_amount" type="number" min="1" step="0.01" required placeholder="50000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Already Saved ({{ currency }})</label>
+          <input class="input-field" name="current_amount" type="number" min="0" step="0.01" value="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Target Date <span class="hint">(optional)</span></label>
+        <input class="input-field" name="target_date" type="date">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:8px;">
+        + Create Savings Goal
+      </button>
+    </form>
+  </div>
+
+  <!-- Goal Cards List -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+    {% if goals %}
+      {% for g in goals %}
+      {% set pct = ([g.current_amount / g.target_amount * 100, 100]|min)|round(1) %}
+      {% set remaining = [g.target_amount - g.current_amount, 0]|max %}
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+          <div>
+            {% if g.target_date %}
+            <span class="badge badge-neutral" style="margin-bottom:6px; font-size:11px;">Due: {{ g.target_date }}</span>
+            {% endif %}
+            <h2 style="font-size:18px; font-weight:800; color:var(--text-main); letter-spacing:-0.02em;">{{ g.name }}</h2>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            {% if pct >= 100 %}
+            <span class="badge badge-income">🎉 Achieved!</span>
+            {% else %}
+            <span class="badge badge-neutral">{{ pct }}% Complete</span>
+            {% endif %}
+
+            <form method="post" action="/goals/{{ g.id }}/delete" data-confirm="Delete savings goal '{{ g.name }}'?" style="margin:0;">
+              <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--text-dim); padding:4px;" title="Delete goal">
+                ✕
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:12px;">
+          <strong style="font-size:22px; font-weight:800; color:var(--text-main);">
+            {{ currency }}{{ '{:,.0f}'.format(g.current_amount) }}
+          </strong>
+          <span style="color:var(--text-muted); font-size:13.5px;">
+            of {{ currency }}{{ '{:,.0f}'.format(g.target_amount) }}
+          </span>
+          <small style="color:var(--text-dim); margin-left:auto; font-size:12px;">
+            {{ currency }}{{ '{:,.0f}'.format(remaining) }} to go
+          </small>
+        </div>
+
+        <div class="progress-track" style="height:11px; margin-bottom:16px;">
+          <div class="progress-fill progress-safe" style="width: {{ pct }}%;"></div>
+        </div>
+
+        <!-- Inline Deposit / Contribution Form -->
+        <form method="post" action="/goals/{{ g.id }}/contribute" style="display:flex; gap:10px; align-items:center; background:var(--bg-card-subtle); padding:10px 14px; border-radius:var(--radius-md);">
+          <span style="font-size:12.5px; font-weight:700; color:var(--text-main); white-space:nowrap;">+ Deposit:</span>
+          <input class="input-field" type="number" step="0.01" min="1" name="amount" placeholder="Amount ({{ currency }})" required style="height:36px; padding:6px 12px; font-size:13px;">
+          <button type="submit" class="btn btn-primary btn-sm" style="height:36px;">
+            Add Funds
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="card" style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+      <div style="font-size:36px; margin-bottom:12px;">🌟</div>
+      <h3 style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:6px;">No goals added yet</h3>
+      <p style="font-size:13px; max-width:320px; margin:0 auto;">Create your first milestone using the form on the left to start tracking your savings progress.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block page_title %}Monthly Budgets{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="header-meta">
+    <p class="eyebrow">Smart Spending Limits</p>
+    <h1>Monthly Category Budgets</h1>
+    <p class="subtitle">Set spending limits for each category to maintain discipline and track progress for {{ current_month_str }}.</p>
+  </div>
+</div>
+
+<!-- Summary Cards for Budgets -->
+<div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Total Allocated</span>
+      <div class="stat-icon">🎯</div>
+    </div>
+    <div class="stat-value">{{ currency }}{{ '{:,.2f}'.format(total_budgeted) }}</div>
+    <div class="stat-meta">Across all category limits</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Spent in Budgets</span>
+      <div class="stat-icon" style="background:var(--expense-subtle); color:var(--expense);">💸</div>
+    </div>
+    <div class="stat-value" style="color:var(--expense);">{{ currency }}{{ '{:,.2f}'.format(total_spent_in_budgets) }}</div>
+    <div class="stat-meta">Total spent in budgeted categories</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Remaining Safe Spend</span>
+      <div class="stat-icon" style="background:var(--income-subtle); color:var(--income);">🛡️</div>
+    </div>
+    {% set remaining_total = total_budgeted - total_spent_in_budgets %}
+    <div class="stat-value" style="color: {{ 'var(--income)' if remaining_total >= 0 else 'var(--expense)' }};">
+      {{ currency }}{{ '{:,.2f}'.format(remaining_total) }}
+    </div>
+    <div class="stat-meta">{{ 'Surplus buffer available' if remaining_total >= 0 else 'Over total budget limit' }}</div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Set / Update Budget Form -->
+  <div class="card" style="height:fit-content;">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Set Category Budget</h2>
+        <p>Define or adjust monthly ceiling</p>
+      </div>
+    </div>
+
+    <form method="post" action="/budgets" class="stack-form">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="select-field" name="category" required>
+          {% for c in categories %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Monthly Limit ({{ currency }})</label>
+        <input class="input-field" type="number" min="1" step="0.01" name="monthly_limit" required placeholder="e.g. 8000">
+      </div>
+
+      <div class="quick-log-presets" style="margin-bottom:18px;">
+        <span style="font-size:11.5px; font-weight:700; color:var(--text-dim);">Suggestions:</span>
+        <button type="button" class="preset-chip" data-target-input="input[name='monthly_limit']" data-preset-amount="2000">{{ currency }}2,000</button>
+        <button type="button" class="preset-chip" data-target-input="input[name='monthly_limit']" data-preset-amount="5000">{{ currency }}5,000</button>
+        <button type="button" class="preset-chip" data-target-input="input[name='monthly_limit']" data-preset-amount="10000">{{ currency }}10,000</button>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;">
+        Save Budget Limit
+      </button>
+    </form>
+  </div>
+
+  <!-- Budget Cards List -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Active Category Budgets</h2>
+        <p>Live tracking for current month</p>
+      </div>
+    </div>
+
+    {% if budgets %}
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      {% for b in budgets %}
+      {% set pct = (b.spent / b.monthly_limit * 100)|round(1) %}
+      {% set remaining = b.monthly_limit - b.spent %}
+      {% set capped_pct = [pct, 100]|min %}
+
+      <div style="background:var(--bg-card-subtle); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+          <div>
+            <span class="cat-badge" style="margin-bottom:6px;">{{ b.category }}</span>
+            <div style="display:flex; align-items:baseline; gap:8px;">
+              <strong style="font-size:17px; font-weight:800; color:var(--text-main);">
+                {{ currency }}{{ '{:,.0f}'.format(b.spent) }}
+              </strong>
+              <span style="color:var(--text-muted); font-size:13px;">
+                spent of {{ currency }}{{ '{:,.0f}'.format(b.monthly_limit) }}
+              </span>
+            </div>
+          </div>
+
+          <div style="text-align:right;">
+            {% if pct >= 100 %}
+            <span class="badge badge-expense" style="font-size:12px; margin-bottom:4px;">Exceeded by {{ currency }}{{ '{:,.0f}'.format(b.spent - b.monthly_limit) }}</span>
+            {% elif pct >= 80 %}
+            <span class="badge badge-warning" style="font-size:12px; margin-bottom:4px;">{{ pct }}% consumed</span>
+            {% else %}
+            <span class="badge badge-income" style="font-size:12px; margin-bottom:4px;">{{ currency }}{{ '{:,.0f}'.format(remaining) }} left</span>
+            {% endif %}
+
+            <form method="post" action="/budgets/{{ b.id }}/delete" data-confirm="Remove the budget for {{ b.category }}?" style="margin:0;">
+              <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--expense); font-size:11.5px; padding:2px 6px;">
+                Remove
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="progress-track" style="height:10px;">
+          <div class="progress-fill {{ 'progress-danger' if pct >= 100 else ('progress-warning' if pct >= 80 else 'progress-safe') }}" style="width: {{ capped_pct }}%;"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+      <div style="font-size:36px; margin-bottom:10px;">🎯</div>
+      <h3 style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:6px;">No budgets configured</h3>
+      <p style="font-size:13px; max-width:320px; margin:0 auto;">Set spending limits for Food, Travel, Shopping or Utilities using the form on the left.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

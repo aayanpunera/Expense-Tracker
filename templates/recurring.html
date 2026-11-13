@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block page_title %}Recurring Bills{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="header-meta">
+    <p class="eyebrow">Automate Routine Finances</p>
+    <h1>Recurring Bills & Subscriptions</h1>
+    <p class="subtitle">Track rent, EMIs, software subscriptions, insurance, and recurring income automatically.</p>
+  </div>
+</div>
+
+<!-- Summary Card -->
+<div class="stat-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;">
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Estimated Monthly Commitments</span>
+      <div class="stat-icon" style="background:var(--expense-subtle); color:var(--expense);">↻</div>
+    </div>
+    <div class="stat-value" style="color:var(--expense);">{{ currency }}{{ '{:,.2f}'.format(monthly_recurring_sum) }}</div>
+    <div class="stat-meta">Monthly recurring expense obligations</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Active Schedules</span>
+      <div class="stat-icon">📋</div>
+    </div>
+    <div class="stat-value">{{ items|selectattr('active')|list|length }} <span style="font-size:16px; font-weight:600; color:var(--text-muted);">/ {{ items|length }} total</span></div>
+    <div class="stat-meta">Automatically recorded when due date arrives</div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Add Schedule Form -->
+  <div class="card" style="height:fit-content;">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Add Recurring Schedule</h2>
+        <p>Set up automatic expense or income</p>
+      </div>
+    </div>
+
+    <form method="post" action="/recurring" class="stack-form">
+      <div class="form-group">
+        <label class="form-label">Title / Description</label>
+        <input class="input-field" name="title" required placeholder="e.g. Netflix, Gym, Apartment Rent, SIP">
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Amount ({{ currency }})</label>
+          <input class="input-field" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Next Due Date</label>
+          <input class="input-field" name="next_due_date" type="date" value="{{ today_date }}" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="select-field" name="kind">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Frequency</label>
+          <select class="select-field" name="frequency">
+            <option value="monthly">Monthly</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="select-field" name="category" required>
+            {% for c in categories %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select class="select-field" name="payment_method" required>
+            {% for m in payment_methods %}
+            <option value="{{ m }}">{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Note <span class="hint">(optional)</span></label>
+        <input class="input-field" name="note" placeholder="e.g. Renews every 5th of the month">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:8px;">
+        + Create Schedule
+      </button>
+    </form>
+  </div>
+
+  <!-- Schedules List -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Your Recurring Entries</h2>
+        <p>Active and paused repeating schedules</p>
+      </div>
+    </div>
+
+    {% if items %}
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      {% for i in items %}
+      <div style="background:var(--bg-card-subtle); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; display:flex; justify-content:space-between; align-items:center; opacity: {{ '1' if i.active else '0.6' }};">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <strong style="font-size:15px; color:var(--text-main);">{{ i.title }}</strong>
+            <span class="badge {{ 'badge-income' if i.active else 'badge-neutral' }}" style="font-size:10.5px;">
+              {{ 'Active' if i.active else 'Paused' }}
+            </span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <span>Frequency: <b>{{ i.frequency|capitalize }}</b></span>
+            <span>Next due: <b>{{ i.next_due_date }}</b></span>
+            <span class="cat-badge" style="padding:2px 8px; font-size:11px;">{{ i.category }}</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:14px;">
+          <strong class="{{ 'amount-positive' if i.kind == 'income' else 'amount-negative' }}" style="font-size:16px;">
+            {{ '+' if i.kind == 'income' else '−' }}{{ currency }}{{ '{:,.2f}'.format(i.amount) }}
+          </strong>
+
+          <div style="display:flex; gap:6px;">
+            <form method="post" action="/recurring/{{ i.id }}/toggle" style="margin:0;">
+              <button type="submit" class="btn btn-secondary btn-sm" title="{{ 'Pause schedule' if i.active else 'Resume schedule' }}">
+                {{ 'Pause' if i.active else 'Resume' }}
+              </button>
+            </form>
+            <form method="post" action="/recurring/{{ i.id }}/delete" data-confirm="Delete recurring entry '{{ i.title }}'?" style="margin:0;">
+              <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                ✕
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+      <div style="font-size:36px; margin-bottom:12px;">↻</div>
+      <h3 style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:6px;">No recurring items configured</h3>
+      <p style="font-size:13px; max-width:320px; margin:0 auto;">Add Netflix, SIP, rent, or utilities to automate repetitive transaction logging.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

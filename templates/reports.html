@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block page_title %}Insights & Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="header-meta">
+    <p class="eyebrow">Financial Analytics</p>
+    <h1>Insights & Visual Reports</h1>
+    <p class="subtitle">Understand where your money goes, track long-term spending patterns, and make better financial decisions.</p>
+  </div>
+  <a href="{{ url_for('export_pdf') }}" class="btn btn-secondary btn-sm">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Download PDF Statement
+  </a>
+</div>
+
+<!-- 4 Key Insights Cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Total Outflow</span>
+      <div class="stat-icon" style="background:var(--expense-subtle); color:var(--expense);">💸</div>
+    </div>
+    <div class="stat-value" style="color:var(--expense);">{{ currency }}{{ '{:,.2f}'.format(total_spent) }}</div>
+    <div class="stat-meta">Lifetime total expenditures</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Total Inflow</span>
+      <div class="stat-icon" style="background:var(--income-subtle); color:var(--income);">💰</div>
+    </div>
+    <div class="stat-value" style="color:var(--income);">{{ currency }}{{ '{:,.2f}'.format(total_earned) }}</div>
+    <div class="stat-meta">Lifetime total income logged</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Average Expense</span>
+      <div class="stat-icon">📊</div>
+    </div>
+    <div class="stat-value">{{ currency }}{{ '{:,.2f}'.format(avg_transaction) }}</div>
+    <div class="stat-meta">Mean expenditure ticket size</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-top">
+      <span class="stat-label">Largest Expense</span>
+      <div class="stat-icon">💎</div>
+    </div>
+    {% if biggest_expense %}
+    <div class="stat-value">{{ currency }}{{ '{:,.0f}'.format(biggest_expense.amount) }}</div>
+    <div class="stat-meta">{{ biggest_expense.title }} ({{ biggest_expense.category }})</div>
+    {% else %}
+    <div class="stat-value">{{ currency }}0.00</div>
+    <div class="stat-meta">No expenses logged yet</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="dashboard-grid" style="margin-bottom:28px;">
+  <!-- Category Doughnut -->
+  <div class="card" style="min-height:420px; display:flex; flex-direction:column;">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Expenses by Category</h2>
+        <p>Distribution of your spending</p>
+      </div>
+    </div>
+    <div style="flex:1; position:relative; min-height:280px;">
+      <canvas id="category-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Monthly Income vs Expense Bar Chart -->
+  <div class="card" style="min-height:420px; display:flex; flex-direction:column;">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Cash Flow Comparison</h2>
+        <p>Monthly Income vs Expenses</p>
+      </div>
+    </div>
+    <div style="flex:1; position:relative; min-height:280px;">
+      <canvas id="monthly-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary Charts & Detailed Breakdown Table -->
+<div class="dashboard-grid">
+  <!-- Payment Method Breakdown Chart -->
+  <div class="card" style="min-height:360px; display:flex; flex-direction:column;">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Payment Methods</h2>
+        <p>Channels used for expenditures</p>
+      </div>
+    </div>
+    <div style="flex:1; position:relative; min-height:240px;">
+      <canvas id="method-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Category Ranking Table -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title-box">
+        <h2>Category Share Breakdown</h2>
+        <p>Spending ranked by volume and share</p>
+      </div>
+    </div>
+
+    {% if by_category %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Count</th>
+            <th style="text-align:right;">Total Spent</th>
+            <th style="text-align:right;">Share %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in by_category %}
+          {% set share = (cat.total / total_spent * 100)|round(1) if total_spent > 0 else 0 %}
+          <tr>
+            <td>
+              <span class="cat-badge">{{ cat.category }}</span>
+            </td>
+            <td style="color:var(--text-muted); font-size:13px;">{{ cat.count }} tx</td>
+            <td style="text-align:right; font-weight:700; color:var(--text-main);">
+              {{ currency }}{{ '{:,.2f}'.format(cat.total) }}
+            </td>
+            <td style="text-align:right;">
+              <span class="badge badge-neutral" style="font-weight:700;">{{ share }}%</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:42px 20px; color:var(--text-muted);">
+      <p style="font-size:13px;">Log your first expenses to view category breakdown metrics.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- JSON Payload for Chart.js -->
+<script id="report-data" type="application/json" data-currency="{{ currency }}">
+  {{ {
+    'categories': by_category,
+    'income_categories': income_by_category,
+    'months': by_month,
+    'methods': by_method
+  }|tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+{% endblock %}

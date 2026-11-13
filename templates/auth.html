@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Create Account' if mode == 'register' else 'Sign In' }} — SpendWise{% endblock %}
+
+{% block auth_content %}
+<div class="auth-box">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:28px;">
+    <div class="brand-logo" style="width:42px; height:42px; font-size:22px;">₹</div>
+    <div>
+      <h2 style="font-size:20px; font-weight:800; letter-spacing:-0.03em; color:var(--text-main);">SpendWise</h2>
+      <span style="font-size:11.5px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em;">Smart Expense Manager</span>
+    </div>
+  </div>
+
+  <div style="margin-bottom:24px;">
+    <p class="eyebrow">{{ 'GET STARTED TODAY' if mode == 'register' else 'WELCOME BACK' }}</p>
+    <h1 style="font-size:26px; font-weight:800; letter-spacing:-0.03em; color:var(--text-main); margin-bottom:6px;">
+      {{ 'Create your account' if mode == 'register' else 'Sign in to SpendWise' }}
+    </h1>
+    <p style="font-size:13.5px; color:var(--text-muted);">
+      {{ 'Take full control of your expenses, budgets, and savings.' if mode == 'register' else 'Enter your credentials to access your financial dashboard.' }}
+    </p>
+  </div>
+
+  <form method="post" action="{{ url_for('register' if mode == 'register' else 'login') }}" class="stack-form">
+    {% if mode == 'register' %}
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input class="input-field" name="name" required minlength="2" placeholder="e.g. Aayan Punera" autofocus>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input class="input-field" name="email" required type="email" placeholder="you@example.com" {{ 'autofocus' if mode == 'login' else '' }}>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="input-field" name="password" required type="password" minlength="6" placeholder="At least 6 characters">
+    </div>
+
+    {% if mode == 'register' %}
+    <div class="form-group">
+      <label class="form-label">Preferred Currency</label>
+      <select class="select-field" name="currency">
+        <option value="₹">₹ — INR (Indian Rupee)</option>
+        <option value="$">$ — USD (US Dollar)</option>
+        <option value="€">€ — EUR (Euro)</option>
+        <option value="£">£ — GBP (British Pound)</option>
+        <option value="A$">A$ — AUD (Australian Dollar)</option>
+        <option value="¥">¥ — JPY (Japanese Yen)</option>
+        <option value="AED">AED — Dirham</option>
+      </select>
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:15px; margin-top:10px;">
+      {{ 'Create Account' if mode == 'register' else 'Sign In to Dashboard' }}
+    </button>
+  </form>
+
+  <div style="text-align:center; margin-top:24px; padding-top:20px; border-top:1px solid var(--border-color); font-size:13.5px; color:var(--text-muted);">
+    {% if mode == 'register' %}
+    Already have an account? <a href="/login" style="font-weight:700; color:var(--primary);">Sign in</a>
+    {% else %}
+    Don't have an account yet? <a href="/register" style="font-weight:700; color:var(--primary);">Create one</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

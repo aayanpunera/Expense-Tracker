@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block page_title %}Transactions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="header-meta">
+    <p class="eyebrow">Financial Record Book</p>
+    <h1>Transactions Ledger</h1>
+    <p class="subtitle">Search, filter, manage, and export your entire financial history.</p>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <a href="{{ url_for('export_csv', **request.args) }}" class="btn btn-secondary btn-sm" title="Export current view to CSV spreadsheet">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      CSV Export
+    </a>
+    <a href="{{ url_for('export_pdf', **request.args) }}" class="btn btn-secondary btn-sm" title="Download formatted PDF statement">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      PDF Statement
+    </a>
+    <button class="btn btn-primary btn-sm" data-open-quick-add>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      + Add Transaction
+    </button>
+  </div>
+</div>
+
+<!-- Summary Metrics Bar for Filtered View -->
+<div class="summary-pills-bar">
+  <div class="pills-group">
+    <span class="badge badge-neutral" style="font-size:12.5px; padding:6px 12px;">
+      Showing <strong>{{ count }}</strong> transactions
+    </span>
+    <span class="badge badge-income" style="font-size:12.5px; padding:6px 12px;">
+      Income: +{{ currency }}{{ '{:,.2f}'.format(total_income) }}
+    </span>
+    <span class="badge badge-expense" style="font-size:12.5px; padding:6px 12px;">
+      Expenses: −{{ currency }}{{ '{:,.2f}'.format(total_expense) }}
+    </span>
+    <span class="badge badge-neutral" style="font-size:12.5px; padding:6px 12px;">
+      Net: <strong style="color: {{ 'var(--income)' if net_filtered >= 0 else 'var(--expense)' }};">{{ currency }}{{ '{:,.2f}'.format(net_filtered) }}</strong>
+    </span>
+  </div>
+</div>
+
+<!-- Advanced Search & Filter Bar -->
+<div class="filter-bar-card">
+  <form method="get" action="/transactions" class="filter-grid">
+    <!-- Search Query -->
+    <div class="search-wrap">
+      <input class="input-field" name="q" value="{{ filters.q }}" placeholder="Search title or notes..." autocomplete="off">
+    </div>
+
+    <!-- Kind Filter -->
+    <div class="filter-item">
+      <select class="select-field" name="kind">
+        <option value="">All Types</option>
+        <option value="expense" {{ 'selected' if filters.kind == 'expense' }}>Expenses Only</option>
+        <option value="income" {{ 'selected' if filters.kind == 'income' }}>Income Only</option>
+      </select>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="filter-item">
+      <select class="select-field" name="category">
+        <option value="">All Categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {{ 'selected' if filters.category == c }}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Payment Method Filter -->
+    <div class="filter-item">
+      <select class="select-field" name="method">
+        <option value="">All Payment Methods</option>
+        {% for m in payment_methods %}
+        <option value="{{ m }}" {{ 'selected' if filters.method == m }}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Date From -->
+    <div class="filter-item">
+      <input class="input-field" type="date" name="from_date" value="{{ filters.from_date }}" title="From Date">
+    </div>
+
+    <!-- Date To -->
+    <div class="filter-item">
+      <input class="input-field" type="date" name="to_date" value="{{ filters.to_date }}" title="To Date">
+    </div>
+
+    <!-- Sort Order -->
+    <div class="filter-item">
+      <select class="select-field" name="sort">
+        <option value="date_desc" {{ 'selected' if filters.sort == 'date_desc' }}>Newest First</option>
+        <option value="date_asc" {{ 'selected' if filters.sort == 'date_asc' }}>Oldest First</option>
+        <option value="amount_desc" {{ 'selected' if filters.sort == 'amount_desc' }}>Highest Amount</option>
+        <option value="amount_asc" {{ 'selected' if filters.sort == 'amount_asc' }}>Lowest Amount</option>
+        <option value="title_asc" {{ 'selected' if filters.sort == 'title_asc' }}>Title (A-Z)</option>
+      </select>
+    </div>
+
+    <!-- Submit & Clear Buttons -->
+    <div style="display:flex; gap:8px;">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="/transactions" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </form>
+</div>
+
+<!-- Transactions Data Table Card -->
+<div class="card" style="padding:0; overflow:hidden;">
+  {% if transactions %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description & Notes</th>
+          <th>Category</th>
+          <th>Payment</th>
+          <th>Type</th>
+          <th style="text-align:right;">Amount</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td style="white-space:nowrap; font-weight:600; color:var(--text-muted); font-size:13px;">
+            {{ t.transaction_date }}
+          </td>
+          <td>
+            <div class="tx-title-meta">
+              <strong>{{ t.title }}</strong>
+              {% if t.note %}
+              <small>{{ t.note }}</small>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            <span class="cat-badge">
+              {{ t.category }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-neutral">{{ t.payment_method }}</span>
+          </td>
+          <td>
+            <span class="badge {{ 'badge-income' if t.kind == 'income' else 'badge-expense' }}">
+              {{ t.kind|capitalize }}
+            </span>
+          </td>
+          <td style="text-align:right;">
+            <strong class="{{ 'amount-positive' if t.kind == 'income' else 'amount-negative' }}" style="font-size:15px;">
+              {{ '+' if t.kind == 'income' else '−' }}{{ currency }}{{ '{:,.2f}'.format(t.amount) }}
+            </strong>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <a href="/transactions/{{ t.id }}/edit" class="btn btn-secondary btn-sm" title="Edit transaction">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Edit
+              </a>
+              <form method="post" action="/transactions/{{ t.id }}/delete" data-confirm="Are you sure you want to permanently delete this transaction?" style="margin:0;">
+                <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center; padding:54px 20px; color:var(--text-muted);">
+    <div style="font-size:38px; margin-bottom:12px;">🔍</div>
+    <h3 style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:6px;">No transactions match your search</h3>
+    <p style="font-size:13px; max-width:320px; margin:0 auto 18px;">Try clearing filters or adjusting your date range to see more entries.</p>
+    <a href="/transactions" class="btn btn-secondary btn-sm">Clear All Filters</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

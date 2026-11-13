@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mintly — Expense Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="logo" href="#dashboard"><span>m</span> mintly</a>
+    <nav class="nav" aria-label="Main navigation">
+      <button class="nav-link active" data-page="dashboard"><i>⌂</i> Overview</button>
+      <button class="nav-link" data-page="transactions"><i>↕</i> Transactions</button>
+      <button class="nav-link" data-page="budgets"><i>◔</i> Budgets</button>
+      <button class="nav-link" data-page="goals"><i>◎</i> Goals</button>
+      <button class="nav-link" data-page="reports"><i>▥</i> Insights</button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="nav-link" data-page="settings"><i>⚙</i> Settings</button>
+      <p><span class="avatar">AP</span> Aayan Punera</p>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="mobile-header"><a class="logo" href="#dashboard"><span>m</span> mintly</a><button id="menu-btn" aria-label="Toggle menu">☰</button></header>
+    <div id="app"></div>
+  </main>
+  <dialog id="transaction-dialog">
+    <form id="transaction-form" method="dialog">
+      <div class="dialog-header"><div><p class="overline">NEW ENTRY</p><h2 id="form-title">Add transaction</h2></div><button type="button" class="icon-btn" data-close>×</button></div>
+      <div class="type-toggle"><label><input type="radio" name="type" value="expense" checked><span>Expense</span></label><label><input type="radio" name="type" value="income"><span>Income</span></label></div>
+      <label>What was it?<input required name="title" maxlength="60" placeholder="e.g. Weekend groceries"></label>
+      <div class="input-row"><label>Amount (₹)<input required name="amount" min="1" step="0.01" type="number" placeholder="0.00"></label><label>Date<input required name="date" type="date"></label></div>
+      <div class="input-row"><label>Category<select name="category"><option>Food & Dining</option><option>Travel</option><option>Rent</option><option>Bills</option><option>Shopping</option><option>Health</option><option>Entertainment</option><option>Salary</option><option>Other</option></select></label><label>Payment<select name="payment"><option>UPI</option><option>Credit Card</option><option>Debit Card</option><option>Cash</option><option>Bank Transfer</option></select></label></div>
+      <label>Note <em>(optional)</em><input name="note" maxlength="100" placeholder="Add a short note"></label>
+      <button class="button submit" type="submit">Save transaction</button>
+    </form>
+  </dialog>
+  <dialog id="goal-dialog">
+    <form id="goal-form" method="dialog"><div class="dialog-header"><div><p class="overline">SAVE WITH PURPOSE</p><h2>New savings goal</h2></div><button type="button" class="icon-btn" data-close>×</button></div><label>Goal name<input name="name" required placeholder="e.g. Goa getaway"></label><div class="input-row"><label>Target amount (₹)<input name="target" min="1" required type="number"></label><label>Already saved (₹)<input name="saved" min="0" required type="number" value="0"></label></div><label>Target date<input name="due" type="date"></label><button class="button submit">Create goal</button></form>
+  </dialog>
+  <script src="script.js"></script>
+</body>
+</html>

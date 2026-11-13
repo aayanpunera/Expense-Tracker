@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ 'Edit Transaction' if transaction else 'Add Transaction' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="header-meta">
+    <p class="eyebrow">{{ 'MODIFY ENTRY' if transaction else 'NEW ENTRY' }}</p>
+    <h1>{{ 'Edit Transaction' if transaction else 'Log New Transaction' }}</h1>
+    <p class="subtitle">{{ 'Update details for this financial record' if transaction else 'Add an expenditure or income deposit into your ledger' }}</p>
+  </div>
+  <a href="/transactions" class="btn btn-secondary btn-sm">
+    ← Back to Transactions
+  </a>
+</div>
+
+<div style="max-width: 680px; margin: 0 auto;">
+  <div class="card">
+    <form method="post" class="stack-form">
+      <!-- Type Toggle Pills -->
+      <div class="type-toggle-pills">
+        <input type="radio" id="form-type-expense" name="kind" value="expense" {{ 'checked' if not transaction or transaction.kind == 'expense' }}>
+        <label for="form-type-expense">Expense</label>
+
+        <input type="radio" id="form-type-income" name="kind" value="income" {{ 'checked' if transaction and transaction.kind == 'income' }}>
+        <label for="form-type-income">Income</label>
+      </div>
+
+      <!-- Title / Description -->
+      <div class="form-group">
+        <label class="form-label">
+          Description / Title
+          <span class="hint">What was this transaction for?</span>
+        </label>
+        <input class="input-field" name="title" required maxlength="80" value="{{ transaction.title if transaction else '' }}" placeholder="e.g. Supermarket grocery run, Monthly salary, Uber ride" autofocus>
+      </div>
+
+      <!-- Amount & Date -->
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">
+            Amount ({{ currency }})
+            <span class="hint">Positive value</span>
+          </label>
+          <input class="input-field" id="tx-form-amount" name="amount" type="number" step="0.01" min="0.01" required value="{{ transaction.amount if transaction else '' }}" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Transaction Date</label>
+          <input class="input-field" name="transaction_date" type="date" required value="{{ transaction.transaction_date if transaction else today_date }}">
+        </div>
+      </div>
+
+      <!-- Quick Amount Presets -->
+      <div style="margin-bottom:18px;">
+        <small style="color:var(--text-muted); font-weight:600; font-size:11.5px; display:block; margin-bottom:6px;">Add preset amount:</small>
+        <div class="quick-log-presets" style="margin-top:0;">
+          <button type="button" class="preset-chip" data-target-input="#tx-form-amount" data-preset-amount="100">+{{ currency }}100</button>
+          <button type="button" class="preset-chip" data-target-input="#tx-form-amount" data-preset-amount="200">+{{ currency }}200</button>
+          <button type="button" class="preset-chip" data-target-input="#tx-form-amount" data-preset-amount="500">+{{ currency }}500</button>
+          <button type="button" class="preset-chip" data-target-input="#tx-form-amount" data-preset-amount="1000">+{{ currency }}1,000</button>
+          <button type="button" class="preset-chip" data-target-input="#tx-form-amount" data-preset-amount="5000">+{{ currency }}5,000</button>
+        </div>
+      </div>
+
+      <!-- Category & Payment Method -->
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="select-field" name="category" required>
+            {% for c in categories %}
+            <option value="{{ c }}" {{ 'selected' if transaction and transaction.category == c }}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select class="select-field" name="payment_method" required>
+            {% for m in payment_methods %}
+            <option value="{{ m }}" {{ 'selected' if transaction and transaction.payment_method == m }}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Note / Remarks -->
+      <div class="form-group">
+        <label class="form-label">
+          Notes & Tags
+          <span class="hint">Optional details</span>
+        </label>
+        <input class="input-field" name="note" maxlength="150" value="{{ transaction.note if transaction else '' }}" placeholder="Add any extra detail (e.g. reimbursed, split with friend)">
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px; border-top:1px solid var(--border-color); padding-top:20px;">
+        <a href="/transactions" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          {{ 'Update Transaction' if transaction else 'Save Transaction' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
