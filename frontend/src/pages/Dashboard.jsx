@@ -9,7 +9,10 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowRight,
   Sparkles,
+  Camera,
+  Users,
 } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +23,7 @@ export default function Dashboard() {
   const { addToast } = useToast();
   const outletContext = useOutletContext();
   const onOpenQuickAdd = outletContext?.onOpenQuickAdd || (() => {});
+  const onOpenScanReceipt = outletContext?.onOpenScanReceipt || (() => {});
   const refreshKey = outletContext?.refreshKey || 0;
 
   const currency = user?.currency || '₹';
@@ -189,6 +193,52 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* AI Financial Advisor Teaser Banner */}
+      <div
+        className="card"
+        style={{
+          background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%)',
+          border: '1px solid rgba(79, 70, 229, 0.2)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 14,
+          padding: '16px 20px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 99,
+              background: 'var(--gradient-primary)',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#fff',
+              flexShrink: 0,
+            }}
+          >
+            <Sparkles size={18} />
+          </div>
+          <div>
+            <strong style={{ fontSize: 14, color: 'var(--text-main)' }}>AI Financial Insights & Advisor</strong>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: 0 }}>
+              Live 50/30/20 budget ratio, runway burn rate, and personalized cost-cutting recommendations available.
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary btn-sm" onClick={onOpenScanReceipt}>
+            <Camera size={14} /> Scan Bill Receipt
+          </button>
+          <Link to="/advisor" className="btn btn-primary btn-sm">
+            Open AI Advisor <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+
       {/* Express Expense Inserter (Directly on Dashboard) */}
       <div className="quick-log-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -198,7 +248,17 @@ export default function Dashboard() {
             </strong>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Quickly insert an expense directly into the database without navigating away</p>
           </div>
-          <span className="badge badge-neutral">Database Sync</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onOpenScanReceipt}
+              title="Scan receipt with OCR"
+            >
+              <Camera size={14} /> OCR Scan
+            </button>
+            <span className="badge badge-neutral">Database Sync</span>
+          </div>
         </div>
 
         <form onSubmit={handleExpressSubmit} className="quick-log-form">

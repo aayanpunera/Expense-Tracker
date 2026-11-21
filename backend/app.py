@@ -153,6 +153,62 @@ def init_db():
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS split_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS split_group_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      email_or_phone TEXT DEFAULT '',
+      is_owner INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(group_id) REFERENCES split_groups(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS split_expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      paid_by_member_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      amount REAL NOT NULL CHECK(amount > 0),
+      category TEXT NOT NULL DEFAULT 'Other',
+      expense_date TEXT NOT NULL,
+      split_type TEXT NOT NULL DEFAULT 'equal',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(group_id) REFERENCES split_groups(id) ON DELETE CASCADE,
+      FOREIGN KEY(paid_by_member_id) REFERENCES split_group_members(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS split_expense_shares (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      expense_id INTEGER NOT NULL,
+      member_id INTEGER NOT NULL,
+      share_amount REAL NOT NULL,
+      FOREIGN KEY(expense_id) REFERENCES split_expenses(id) ON DELETE CASCADE,
+      FOREIGN KEY(member_id) REFERENCES split_group_members(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS split_settlements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      from_member_id INTEGER NOT NULL,
+      to_member_id INTEGER NOT NULL,
+      amount REAL NOT NULL CHECK(amount > 0),
+      settled_date TEXT NOT NULL,
+      note TEXT DEFAULT '',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(group_id) REFERENCES split_groups(id) ON DELETE CASCADE,
+      FOREIGN KEY(from_member_id) REFERENCES split_group_members(id) ON DELETE CASCADE,
+      FOREIGN KEY(to_member_id) REFERENCES split_group_members(id) ON DELETE CASCADE
+    );
     """
     )
     connection.commit()
@@ -1263,8 +1319,784 @@ def api_clear_data():
     db().execute("DELETE FROM budgets WHERE user_id=?", (user_id,))
     db().execute("DELETE FROM goals WHERE user_id=?", (user_id,))
     db().execute("DELETE FROM recurring_transactions WHERE user_id=?", (user_id,))
+    db().execute("DELETE FROM split_groups WHERE user_id=?", (user_id,))
     db().commit()
     return jsonify({"success": True, "message": "All financial records cleared."})
+
+
+# ============================================================================
+# FEATURE 2: GROUP EXPENSE SPLITTING (SPLITWISE-STYLE)
+# ============================================================================
+
+def compute_group_debts(members, expenses, settlements):
+    balances = {m["id"]: 0.0 for m in members}
+
+    for exp in expenses:
+        paid_by = exp["paid_by_member_id"]
+        amount = exp["amount"]
+        if paid_by in balances:
+            balances[paid_by] += amount
+        for share in exp.get("shares", []):
+            m_id = share["member_id"]
+            if m_id in balances:
+                balances[m_id] -= share["share_amount"]
+
+    for s in settlements:
+        from_id = s["from_member_id"]
+        to_id = s["to_member_id"]
+        amt = s["amount"]
+        if from_id in balances:
+            balances[from_id] += amt
+        if to_id in balances:
+            balances[to_id] -= amt
+
+    debtors = []
+    creditors = []
+    for m_id, bal in balances.items():
+        round_bal = round(bal, 2)
+        if round_bal < -0.01:
+            debtors.append({"id": m_id, "amount": -round_bal})
+        elif round_bal > 0.01:
+            creditors.append({"id": m_id, "amount": round_bal})
+
+    debtors.sort(key=lambda x: x["amount"], reverse=True)
+    creditors.sort(key=lambda x: x["amount"], reverse=True)
+
+    member_map = {m["id"]: m for m in members}
+    simplified = []
+    i = 0
+    j = 0
+    while i < len(debtors) and j < len(creditors):
+        debtor = debtors[i]
+        creditor = creditors[j]
+        settle_amt = min(debtor["amount"], creditor["amount"])
+        if settle_amt > 0.01:
+            simplified.append({
+                "from_member": {"id": debtor["id"], "name": member_map.get(debtor["id"], {}).get("name", "Unknown")},
+                "to_member": {"id": creditor["id"], "name": member_map.get(creditor["id"], {}).get("name", "Unknown")},
+                "amount": round(settle_amt, 2),
+            })
+        debtor["amount"] -= settle_amt
+        creditor["amount"] -= settle_amt
+        if debtor["amount"] <= 0.01:
+            i += 1
+        if creditor["amount"] <= 0.01:
+            j += 1
+
+    return balances, simplified
+
+
+@app.route("/api/groups", methods=["GET"])
+@auth_required
+def api_list_groups():
+    user_id = g.user["id"]
+    groups = db().execute(
+        "SELECT * FROM split_groups WHERE user_id=? ORDER BY created_at DESC",
+        (user_id,),
+    ).fetchall()
+
+    result = []
+    for g_row in groups:
+        g_id = g_row["id"]
+        members = db().execute("SELECT * FROM split_group_members WHERE group_id=?", (g_id,)).fetchall()
+        expenses = db().execute("SELECT * FROM split_expenses WHERE group_id=?", (g_id,)).fetchall()
+        settlements = db().execute("SELECT * FROM split_settlements WHERE group_id=?", (g_id,)).fetchall()
+
+        expenses_with_shares = []
+        for exp in expenses:
+            shares = db().execute("SELECT * FROM split_expense_shares WHERE expense_id=?", (exp["id"],)).fetchall()
+            exp_dict = dict(exp)
+            exp_dict["shares"] = [dict(s) for s in shares]
+            expenses_with_shares.append(exp_dict)
+
+        members_list = [dict(m) for m in members]
+        balances, _ = compute_group_debts(members_list, expenses_with_shares, [dict(s) for s in settlements])
+
+        # Find owner member id
+        owner_member = next((m for m in members_list if m["is_owner"] == 1), None)
+        user_balance = balances.get(owner_member["id"], 0.0) if owner_member else 0.0
+
+        total_exp = sum(e["amount"] for e in expenses)
+        result.append({
+            "id": g_row["id"],
+            "name": g_row["name"],
+            "description": g_row["description"],
+            "created_at": g_row["created_at"],
+            "member_count": len(members_list),
+            "members": members_list,
+            "total_expenses": round(total_exp, 2),
+            "user_net_balance": round(user_balance, 2),
+        })
+
+    return jsonify({"success": True, "groups": result})
+
+
+@app.route("/api/groups", methods=["POST"])
+@auth_required
+def api_create_group():
+    user_id = g.user["id"]
+    data = request.get_json(silent=True) or request.form
+    name = (data.get("name") or "").strip()
+    description = (data.get("description") or "").strip()
+    member_names = data.get("members") or []
+
+    if not name:
+        return jsonify({"success": False, "error": "Group name is required."}), 400
+
+    cursor = db().cursor()
+    cursor.execute(
+        "INSERT INTO split_groups (user_id, name, description) VALUES (?, ?, ?)",
+        (user_id, name, description),
+    )
+    group_id = cursor.lastrowid
+
+    # Add logged in user as the owner member
+    cursor.execute(
+        "INSERT INTO split_group_members (group_id, name, is_owner) VALUES (?, ?, 1)",
+        (group_id, g.user["name"] or "You"),
+    )
+
+    # Add other members
+    for m in member_names:
+        m_name = m.strip() if isinstance(m, str) else m.get("name", "").strip()
+        if m_name and m_name.lower() != (g.user["name"] or "you").lower():
+            cursor.execute(
+                "INSERT INTO split_group_members (group_id, name, is_owner) VALUES (?, ?, 0)",
+                (group_id, m_name),
+            )
+
+    db().commit()
+    return jsonify({"success": True, "group_id": group_id, "message": "Group created successfully."}), 201
+
+
+@app.route("/api/groups/<int:group_id>", methods=["GET"])
+@auth_required
+def api_get_group(group_id):
+    user_id = g.user["id"]
+    group = db().execute("SELECT * FROM split_groups WHERE id=? AND user_id=?", (group_id, user_id)).fetchone()
+    if not group:
+        return jsonify({"success": False, "error": "Group not found."}), 404
+
+    members = [dict(m) for m in db().execute("SELECT * FROM split_group_members WHERE group_id=? ORDER BY id ASC", (group_id,)).fetchall()]
+    expenses_raw = db().execute("SELECT * FROM split_expenses WHERE group_id=? ORDER BY expense_date DESC, id DESC", (group_id,)).fetchall()
+    settlements_raw = db().execute("SELECT * FROM split_settlements WHERE group_id=? ORDER BY settled_date DESC, id DESC", (group_id,)).fetchall()
+
+    member_map = {m["id"]: m["name"] for m in members}
+
+    expenses = []
+    for exp in expenses_raw:
+        shares = [dict(s) for s in db().execute("SELECT * FROM split_expense_shares WHERE expense_id=?", (exp["id"],)).fetchall()]
+        for s in shares:
+            s["member_name"] = member_map.get(s["member_id"], "Unknown")
+        exp_dict = dict(exp)
+        exp_dict["paid_by_name"] = member_map.get(exp["paid_by_member_id"], "Unknown")
+        exp_dict["shares"] = shares
+        expenses.append(exp_dict)
+
+    settlements = []
+    for s in settlements_raw:
+        s_dict = dict(s)
+        s_dict["from_member_name"] = member_map.get(s["from_member_id"], "Unknown")
+        s_dict["to_member_name"] = member_map.get(s["to_member_id"], "Unknown")
+        settlements.append(s_dict)
+
+    balances, simplified_debts = compute_group_debts(members, expenses, settlements)
+
+    for m in members:
+        m["balance"] = round(balances.get(m["id"], 0.0), 2)
+
+    total_spent = sum(e["amount"] for e in expenses)
+
+    return jsonify({
+        "success": True,
+        "group": dict(group),
+        "members": members,
+        "expenses": expenses,
+        "settlements": settlements,
+        "simplified_debts": simplified_debts,
+        "total_spent": round(total_spent, 2),
+    })
+
+
+@app.route("/api/groups/<int:group_id>/members", methods=["POST"])
+@auth_required
+def api_add_group_member(group_id):
+    user_id = g.user["id"]
+    group = db().execute("SELECT * FROM split_groups WHERE id=? AND user_id=?", (group_id, user_id)).fetchone()
+    if not group:
+        return jsonify({"success": False, "error": "Group not found."}), 404
+
+    data = request.get_json(silent=True) or request.form
+    name = (data.get("name") or "").strip()
+    contact = (data.get("email_or_phone") or "").strip()
+    if not name:
+        return jsonify({"success": False, "error": "Member name is required."}), 400
+
+    cursor = db().cursor()
+    cursor.execute(
+        "INSERT INTO split_group_members (group_id, name, email_or_phone) VALUES (?, ?, ?)",
+        (group_id, name, contact),
+    )
+    db().commit()
+    return jsonify({"success": True, "member_id": cursor.lastrowid})
+
+
+@app.route("/api/groups/<int:group_id>/expenses", methods=["POST"])
+@auth_required
+def api_add_group_expense(group_id):
+    user_id = g.user["id"]
+    group = db().execute("SELECT * FROM split_groups WHERE id=? AND user_id=?", (group_id, user_id)).fetchone()
+    if not group:
+        return jsonify({"success": False, "error": "Group not found."}), 404
+
+    data = request.get_json(silent=True) or request.form
+    title = (data.get("title") or "").strip()
+    try:
+        amount = float(data.get("amount") or 0)
+    except (ValueError, TypeError):
+        amount = 0
+    paid_by = data.get("paid_by_member_id")
+    category = data.get("category") or "Other"
+    expense_date = data.get("expense_date") or date.today().isoformat()
+    split_type = data.get("split_type") or "equal"
+    custom_shares = data.get("shares") or {}  # { member_id: share_amount }
+
+    if not title or amount <= 0 or not paid_by:
+        return jsonify({"success": False, "error": "Title, positive amount, and payer are required."}), 400
+
+    members = db().execute("SELECT id FROM split_group_members WHERE group_id=?", (group_id,)).fetchall()
+    member_ids = [m["id"] for m in members]
+    if not member_ids:
+        return jsonify({"success": False, "error": "Group has no members."}), 400
+
+    cursor = db().cursor()
+    cursor.execute(
+        """
+        INSERT INTO split_expenses (group_id, paid_by_member_id, title, amount, category, expense_date, split_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (group_id, paid_by, title, amount, category, expense_date, split_type),
+    )
+    expense_id = cursor.lastrowid
+
+    # Compute shares
+    if split_type == "equal" or not custom_shares:
+        per_person = round(amount / len(member_ids), 2)
+        diff = round(amount - (per_person * len(member_ids)), 2)
+        for idx, m_id in enumerate(member_ids):
+            share_val = per_person + (diff if idx == 0 else 0.0)
+            cursor.execute(
+                "INSERT INTO split_expense_shares (expense_id, member_id, share_amount) VALUES (?, ?, ?)",
+                (expense_id, m_id, share_val),
+            )
+    else:
+        for m_id in member_ids:
+            s_val = float(custom_shares.get(str(m_id)) or custom_shares.get(m_id) or 0.0)
+            cursor.execute(
+                "INSERT INTO split_expense_shares (expense_id, member_id, share_amount) VALUES (?, ?, ?)",
+                (expense_id, m_id, s_val),
+            )
+
+    db().commit()
+    return jsonify({"success": True, "expense_id": expense_id, "message": "Expense added to group."}), 201
+
+
+@app.route("/api/groups/<int:group_id>/expenses/<int:expense_id>", methods=["DELETE"])
+@auth_required
+def api_delete_group_expense(group_id, expense_id):
+    user_id = g.user["id"]
+    group = db().execute("SELECT * FROM split_groups WHERE id=? AND user_id=?", (group_id, user_id)).fetchone()
+    if not group:
+        return jsonify({"success": False, "error": "Group not found."}), 404
+
+    db().execute("DELETE FROM split_expenses WHERE id=? AND group_id=?", (expense_id, group_id))
+    db().commit()
+    return jsonify({"success": True, "message": "Expense deleted."})
+
+
+@app.route("/api/groups/<int:group_id>/settle", methods=["POST"])
+@auth_required
+def api_settle_group_debt(group_id):
+    user_id = g.user["id"]
+    group = db().execute("SELECT * FROM split_groups WHERE id=? AND user_id=?", (group_id, user_id)).fetchone()
+    if not group:
+        return jsonify({"success": False, "error": "Group not found."}), 404
+
+    data = request.get_json(silent=True) or request.form
+    from_id = data.get("from_member_id")
+    to_id = data.get("to_member_id")
+    try:
+        amount = float(data.get("amount") or 0)
+    except (ValueError, TypeError):
+        amount = 0
+    settled_date = data.get("settled_date") or date.today().isoformat()
+    note = (data.get("note") or "").strip()
+
+    if not from_id or not to_id or amount <= 0:
+        return jsonify({"success": False, "error": "Payer, recipient, and positive amount are required."}), 400
+
+    db().execute(
+        """
+        INSERT INTO split_settlements (group_id, from_member_id, to_member_id, amount, settled_date, note)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (group_id, from_id, to_id, amount, settled_date, note),
+    )
+    db().commit()
+    return jsonify({"success": True, "message": "Settlement recorded."})
+
+
+@app.route("/api/groups/<int:group_id>", methods=["DELETE"])
+@auth_required
+def api_delete_group(group_id):
+    user_id = g.user["id"]
+    db().execute("DELETE FROM split_groups WHERE id=? AND user_id=?", (group_id, user_id))
+    db().commit()
+    return jsonify({"success": True, "message": "Group deleted."})
+
+
+# ============================================================================
+# FEATURE 5: SMART BUDGET ALERTS & BILL REMINDERS
+# ============================================================================
+
+@app.route("/api/notifications", methods=["GET"])
+@auth_required
+def api_notifications():
+    user_id = g.user["id"]
+    currency = g.user["currency"] or "₹"
+    today = date.today()
+    month_str = today.strftime("%Y-%m")
+    alerts = []
+
+    # 1. Budget Alerts
+    budgets = [dict(b) for b in db().execute("SELECT * FROM budgets WHERE user_id=?", (user_id,)).fetchall()]
+    for b in budgets:
+        cat = b["category"]
+        limit = b["monthly_limit"]
+        row = db().execute(
+            """
+            SELECT COALESCE(SUM(amount), 0) as spent
+            FROM transactions
+            WHERE user_id=? AND kind='expense' AND category=? AND strftime('%Y-%m', transaction_date)=?
+            """,
+            (user_id, cat, month_str),
+        ).fetchone()
+        spent = row["spent"]
+        ratio = (spent / limit) if limit > 0 else 0
+
+        if ratio >= 1.0:
+            alerts.append({
+                "id": f"budget-exceeded-{b['id']}",
+                "type": "budget_danger",
+                "severity": "danger",
+                "title": f"Budget Exceeded: {cat}",
+                "message": f"You've spent {currency}{spent:,.2f} on {cat}, exceeding your limit of {currency}{limit:,.2f} by {((ratio-1)*100):.0f}%.",
+                "link": "/budgets",
+                "date": today.isoformat(),
+            })
+        elif ratio >= 0.8:
+            alerts.append({
+                "id": f"budget-warn-{b['id']}",
+                "type": "budget_warning",
+                "severity": "warning",
+                "title": f"Budget Alert: {cat}",
+                "message": f"You've used {ratio*100:.0f}% of your {cat} monthly budget ({currency}{spent:,.2f} / {currency}{limit:,.2f}).",
+                "link": "/budgets",
+                "date": today.isoformat(),
+            })
+
+    # 2. Upcoming & Overdue Recurring Bills
+    recurrings = [dict(r) for r in db().execute("SELECT * FROM recurring_transactions WHERE user_id=? AND active=1", (user_id,)).fetchall()]
+    for r in recurrings:
+        try:
+            due_d = datetime.strptime(r["next_due_date"], "%Y-%m-%d").date()
+            diff_days = (due_d - today).days
+            if diff_days < 0:
+                alerts.append({
+                    "id": f"bill-overdue-{r['id']}",
+                    "type": "bill_due",
+                    "severity": "danger",
+                    "title": f"Overdue Bill: {r['title']}",
+                    "message": f"{r['title']} ({currency}{r['amount']:,.2f}) was due on {r['next_due_date']}.",
+                    "link": "/recurring",
+                    "date": r["next_due_date"],
+                })
+            elif diff_days == 0:
+                alerts.append({
+                    "id": f"bill-today-{r['id']}",
+                    "type": "bill_due",
+                    "severity": "warning",
+                    "title": f"Bill Due Today: {r['title']}",
+                    "message": f"{r['title']} ({currency}{r['amount']:,.2f}) is due today via {r['payment_method']}.",
+                    "link": "/recurring",
+                    "date": r["next_due_date"],
+                })
+            elif diff_days <= 3:
+                alerts.append({
+                    "id": f"bill-soon-{r['id']}",
+                    "type": "bill_due",
+                    "severity": "info",
+                    "title": f"Upcoming Bill: {r['title']}",
+                    "message": f"{r['title']} ({currency}{r['amount']:,.2f}) is due in {diff_days} day{'s' if diff_days > 1 else ''}.",
+                    "link": "/recurring",
+                    "date": r["next_due_date"],
+                })
+        except ValueError:
+            pass
+
+    # 3. Savings Goals Milestones
+    goals = [dict(g) for g in db().execute("SELECT * FROM goals WHERE user_id=?", (user_id,)).fetchall()]
+    for g_item in goals:
+        if g_item["current_amount"] >= g_item["target_amount"]:
+            alerts.append({
+                "id": f"goal-done-{g_item['id']}",
+                "type": "goal_milestone",
+                "severity": "success",
+                "title": f"🎉 Goal Reached: {g_item['name']}",
+                "message": f"Congratulations! You reached your savings target of {currency}{g_item['target_amount']:,.2f}!",
+                "link": "/goals",
+                "date": today.isoformat(),
+            })
+        elif g_item.get("target_date"):
+            try:
+                g_due = datetime.strptime(g_item["target_date"], "%Y-%m-%d").date()
+                days_left = (g_due - today).days
+                if 0 <= days_left <= 7:
+                    alerts.append({
+                        "id": f"goal-deadline-{g_item['id']}",
+                        "type": "goal_milestone",
+                        "severity": "info",
+                        "title": f"Target Approaching: {g_item['name']}",
+                        "message": f"{days_left} day{'s' if days_left > 1 else ''} left to reach {currency}{g_item['target_amount']:,.2f} (current: {currency}{g_item['current_amount']:,.2f}).",
+                        "link": "/goals",
+                        "date": g_item["target_date"],
+                    })
+            except ValueError:
+                pass
+
+    return jsonify({"success": True, "count": len(alerts), "alerts": alerts})
+
+
+# ============================================================================
+# FEATURE 1: SMART RECEIPT SCANNING & PARSER (HEURISTIC + OCR)
+# ============================================================================
+
+@app.route("/api/receipts/parse", methods=["POST"])
+@auth_required
+def api_parse_receipt():
+    import re
+    data = request.get_json(silent=True) or request.form
+    raw_text = (data.get("text") or "").strip()
+    filename = (data.get("filename") or "receipt.jpg").strip()
+
+    if not raw_text:
+        return jsonify({"success": False, "error": "No OCR text provided to parse."}), 400
+
+    lines = [l.strip() for l in raw_text.splitlines() if l.strip()]
+
+    # 1. Parse Amount (look for total, grand total, net, or currency patterns)
+    extracted_amount = 0.0
+    amount_patterns = [
+        re.compile(r"(?:grand\s+total|total\s+amount|net\s+total|total|amount\s+payable|balance\s+due|subtotal)[\s:]*([₹$€£]?\s*[\d,]+\.?\d*)", re.IGNORECASE),
+        re.compile(r"([₹$€£]\s*[\d,]+\.?\d*)", re.IGNORECASE),
+        re.compile(r"([\d,]+\.\d{2})"),
+    ]
+
+    for pat in amount_patterns:
+        matches = pat.findall(raw_text)
+        if matches:
+            for m in reversed(matches):
+                clean_m = re.sub(r"[^\d.]", "", m)
+                try:
+                    val = float(clean_m)
+                    if 1 <= val <= 500000:
+                        extracted_amount = val
+                        break
+                except ValueError:
+                    continue
+        if extracted_amount > 0:
+            break
+
+    # 2. Parse Date
+    extracted_date = date.today().isoformat()
+    date_patterns = [
+        re.compile(r"\b(\d{4}[-/]\d{2}[-/]\d{2})\b"),  # YYYY-MM-DD
+        re.compile(r"\b(\d{2}[-/]\d{2}[-/]\d{4})\b"),  # DD-MM-YYYY or MM-DD-YYYY
+        re.compile(r"\b(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})\b", re.IGNORECASE),
+    ]
+    for d_pat in date_patterns:
+        d_match = d_pat.search(raw_text)
+        if d_match:
+            raw_d = d_match.group(1).replace("/", "-")
+            parts = raw_d.split("-")
+            if len(parts) == 3:
+                if len(parts[0]) == 4:
+                    extracted_date = f"{parts[0]}-{parts[1].zfill(2)}-{parts[2].zfill(2)}"
+                elif len(parts[2]) == 4:
+                    extracted_date = f"{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+            break
+
+    # 3. Parse Merchant / Store Name
+    extracted_title = ""
+    ignore_words = {"tax invoice", "receipt", "cash memo", "bill", "retail invoice", "customer copy", "welcome", "gstin", "order", "table", "token"}
+    for line in lines[:6]:
+        cleaned_line = re.sub(r"[^a-zA-Z0-9\s&'-]", "", line).strip()
+        if len(cleaned_line) >= 3 and cleaned_line.lower() not in ignore_words and not re.search(r"^\d+$", cleaned_line):
+            extracted_title = cleaned_line.title()
+            break
+
+    if not extracted_title:
+        base_name = Path(filename).stem.replace("_", " ").replace("-", " ")
+        extracted_title = f"{base_name.title()} Purchase"
+
+    # 4. Auto Categorization based on text keywords
+    text_lower = raw_text.lower()
+    extracted_category = "Shopping"
+    if any(k in text_lower for k in ["cafe", "coffee", "restaurant", "burger", "pizza", "dosa", "food", "kitchen", "biryani", "swiggy", "zomato", "dining", "bar", "bakery", "hotel"]):
+        extracted_category = "Food & Dining"
+    elif any(k in text_lower for k in ["fuel", "petrol", "diesel", "uber", "ola", "metro", "flight", "indigo", "railway", "irctc", "taxi", "toll", "parking"]):
+        extracted_category = "Travel"
+    elif any(k in text_lower for k in ["pharmacy", "medical", "hospital", "chemist", "clinic", "health", "apollo", "medplus", "diagnostic", "blood"]):
+        extracted_category = "Health"
+    elif any(k in text_lower for k in ["electricity", "power", "water", "broadband", "wifi", "internet", "airtel", "jio", "bescom", "gas", "cylinder"]):
+        extracted_category = "Bills"
+    elif any(k in text_lower for k in ["cinema", "movie", "pvr", "inox", "netflix", "prime", "spotify", "game", "theatre", "amusement"]):
+        extracted_category = "Entertainment"
+    elif any(k in text_lower for k in ["supermarket", "mart", "grocery", "groceries", "bazaar", "reliance", "dmart", "spencer", "store", "clothes", "zara", "h&m"]):
+        extracted_category = "Shopping"
+
+    # 5. Payment Method detection
+    extracted_method = "UPI"
+    if any(k in text_lower for k in ["cash", "change given", "tendered"]):
+        extracted_method = "Cash"
+    elif any(k in text_lower for k in ["visa", "mastercard", "credit", "amex", "card ending", "pos transaction"]):
+        extracted_method = "Credit Card"
+    elif any(k in text_lower for k in ["debit", "bank transfer", "neft", "rtgs", "imps"]):
+        extracted_method = "Debit Card"
+    elif any(k in text_lower for k in ["upi", "gpay", "phonepe", "paytm", "bhim", "qr"]):
+        extracted_method = "UPI"
+
+    return jsonify({
+        "success": True,
+        "parsed": {
+            "title": extracted_title,
+            "amount": extracted_amount,
+            "transaction_date": extracted_date,
+            "category": extracted_category,
+            "payment_method": extracted_method,
+            "note": f"Scanned via Smart Receipt OCR ({filename})",
+            "raw_text": raw_text[:500],
+        }
+    })
+
+
+# ============================================================================
+# FEATURE 6: AI FINANCIAL ADVISOR & ANALYTIC INSIGHTS
+# ============================================================================
+
+@app.route("/api/ai/insights", methods=["GET"])
+@auth_required
+def api_ai_insights():
+    user_id = g.user["id"]
+    currency = g.user["currency"] or "₹"
+    today = date.today()
+    month_str = today.strftime("%Y-%m")
+
+    # Get this month's financials
+    txs = db().execute(
+        "SELECT * FROM transactions WHERE user_id=? AND strftime('%Y-%m', transaction_date)=?",
+        (user_id, month_str),
+    ).fetchall()
+
+    inc = sum(t["amount"] for t in txs if t["kind"] == "income")
+    exp = sum(t["amount"] for t in txs if t["kind"] == "expense")
+    net = inc - exp
+    savings_rate = round((net / inc * 100), 1) if inc > 0 else 0
+
+    # Categorize into Needs vs Wants vs Savings (50-30-20 Rule)
+    needs_cats = {"Rent", "Bills", "Health", "Food & Dining", "Travel"}
+    wants_cats = {"Shopping", "Entertainment", "Other"}
+
+    needs_spent = sum(t["amount"] for t in txs if t["kind"] == "expense" and t["category"] in needs_cats)
+    wants_spent = sum(t["amount"] for t in txs if t["kind"] == "expense" and t["category"] in wants_cats)
+
+    needs_pct = round((needs_spent / inc * 100), 1) if inc > 0 else round((needs_spent / (exp or 1) * 100), 1)
+    wants_pct = round((wants_spent / inc * 100), 1) if inc > 0 else round((wants_spent / (exp or 1) * 100), 1)
+    actual_savings_pct = max(0, savings_rate)
+
+    # Spending velocity
+    days_in_month = (date(today.year + (today.month // 12), ((today.month % 12) + 1), 1) - timedelta(days=1)).day
+    days_passed = today.day
+    daily_burn = exp / max(1, days_passed)
+    projected_exp = daily_burn * days_in_month
+
+    # Top category
+    cat_totals = {}
+    for t in txs:
+        if t["kind"] == "expense":
+            cat_totals[t["category"]] = cat_totals.get(t["category"], 0.0) + t["amount"]
+    top_cat = max(cat_totals.items(), key=lambda x: x[1]) if cat_totals else ("None", 0)
+
+    insights = [
+        {
+            "id": "50-30-20",
+            "title": "50/30/20 Budget Rule Check",
+            "grade": "Balanced" if (needs_pct <= 55 and wants_pct <= 35 and actual_savings_pct >= 15) else "Optimization Needed",
+            "color": "emerald" if actual_savings_pct >= 20 else "amber",
+            "summary": f"Your current split is {needs_pct:.0f}% Needs, {wants_pct:.0f}% Wants, and {actual_savings_pct:.0f}% Savings.",
+            "recommendation": "Target 50% Needs, 30% Wants, and 20% Savings for ideal financial health.",
+            "metrics": {
+                "needs_pct": needs_pct,
+                "wants_pct": wants_pct,
+                "savings_pct": actual_savings_pct,
+            }
+        },
+        {
+            "id": "runway",
+            "title": "Month-End Burn & Cash Runway",
+            "grade": "Healthy" if projected_exp <= inc else "At Risk",
+            "color": "indigo" if projected_exp <= inc else "rose",
+            "summary": f"Daily average spend is {currency}{daily_burn:,.2f}. Projected month-end outflow: {currency}{projected_exp:,.2f}.",
+            "recommendation": f"Keep daily spending under {currency}{(inc/days_in_month):,.2f} to maintain a positive monthly cash flow." if inc > 0 else "Set up a monthly income record to unlock cash flow runway tracking.",
+            "metrics": {
+                "daily_burn": round(daily_burn, 2),
+                "projected_month_end": round(projected_exp, 2),
+                "projected_surplus": round(inc - projected_exp, 2) if inc > 0 else 0,
+            }
+        },
+        {
+            "id": "top-drain",
+            "title": "Major Cost Driver",
+            "grade": f"{top_cat[0]} ({round(top_cat[1] / (exp or 1) * 100):.0f}%)",
+            "color": "purple",
+            "summary": f"{top_cat[0]} accounts for {currency}{top_cat[1]:,.2f} of this month's total spending.",
+            "recommendation": f"Trimming 10% from {top_cat[0]} will save you {currency}{(top_cat[1]*0.10):,.2f} this month alone.",
+            "metrics": {
+                "category": top_cat[0],
+                "amount": round(top_cat[1], 2),
+                "potential_saving": round(top_cat[1] * 0.10, 2),
+            }
+        },
+        {
+            "id": "goals-forecast",
+            "title": "Savings Acceleration",
+            "grade": f"{savings_rate:.0f}% Saved",
+            "color": "teal",
+            "summary": f"You have saved {currency}{max(0, net):,.2f} so far this month.",
+            "recommendation": "Redirecting half of your daily discretionary spend into your goals will accelerate milestones by 30%.",
+            "metrics": {
+                "savings_rate": savings_rate,
+                "net_saved": max(0, round(net, 2)),
+            }
+        }
+    ]
+
+    return jsonify({"success": True, "insights": insights})
+
+
+@app.route("/api/ai/advisor", methods=["POST"])
+@auth_required
+def api_ai_advisor():
+    user_id = g.user["id"]
+    currency = g.user["currency"] or "₹"
+    data = request.get_json(silent=True) or request.form
+    question = (data.get("question") or "").strip()
+
+    if not question:
+        return jsonify({"success": False, "error": "Please provide a question or topic."}), 400
+
+    today = date.today()
+    month_str = today.strftime("%Y-%m")
+
+    # Financial Snapshot
+    txs = db().execute(
+        "SELECT * FROM transactions WHERE user_id=? AND strftime('%Y-%m', transaction_date)=?",
+        (user_id, month_str),
+    ).fetchall()
+    inc = sum(t["amount"] for t in txs if t["kind"] == "income")
+    exp = sum(t["amount"] for t in txs if t["kind"] == "expense")
+    net = inc - exp
+    savings_rate = round((net / inc * 100), 1) if inc > 0 else 0
+
+    cat_totals = {}
+    for t in txs:
+        if t["kind"] == "expense":
+            cat_totals[t["category"]] = cat_totals.get(t["category"], 0.0) + t["amount"]
+
+    sorted_cats = sorted(cat_totals.items(), key=lambda x: x[1], reverse=True)
+    top_cat = sorted_cats[0] if sorted_cats else ("None", 0)
+
+    budgets = db().execute("SELECT * FROM budgets WHERE user_id=?", (user_id,)).fetchall()
+    goals = db().execute("SELECT * FROM goals WHERE user_id=?", (user_id,)).fetchall()
+
+    q_lower = question.lower()
+
+    # Intelligent Analytical Advisor Response Generation
+    if any(k in q_lower for k in ["50/30/20", "rule", "ratio", "split"]):
+        needs_cats = {"Rent", "Bills", "Health", "Food & Dining", "Travel"}
+        wants_cats = {"Shopping", "Entertainment", "Other"}
+        needs = sum(t["amount"] for t in txs if t["kind"] == "expense" and t["category"] in needs_cats)
+        wants = sum(t["amount"] for t in txs if t["kind"] == "expense" and t["category"] in wants_cats)
+        n_pct = round(needs / (inc or exp or 1) * 100)
+        w_pct = round(wants / (inc or exp or 1) * 100)
+        s_pct = round(max(0, net) / (inc or 1) * 100)
+        reply = (
+            f"### 📊 Your 50/30/20 Rule Analysis\n\n"
+            f"Here is how your actual spending compares to the standard 50/30/20 financial rule this month:\n\n"
+            f"- **Essential Needs (Target: 50%)**: Currently at **{n_pct}%** ({currency}{needs:,.2f})\n"
+            f"- **Discretionary Wants (Target: 30%)**: Currently at **{w_pct}%** ({currency}{wants:,.2f})\n"
+            f"- **Savings & Debt (Target: 20%)**: Currently at **{s_pct}%** ({currency}{max(0, net):,.2f})\n\n"
+            f"**Actionable Advice**:\n"
+            f"{"Your budget aligns closely with the recommended ratio! Great financial discipline." if n_pct <= 55 and w_pct <= 35 else f"Your discretionary 'Wants' are higher than recommended. Consider capping non-essential spending on {top_cat[0]} to push your savings closer to 20%."}"
+        )
+    elif any(k in q_lower for k in ["food", "dining", "swiggy", "zomato", "eat"]):
+        food_exp = cat_totals.get("Food & Dining", 0.0)
+        pct = round(food_exp / (exp or 1) * 100)
+        reply = (
+            f"### 🍔 Food & Dining Breakdown\n\n"
+            f"- Total spent on Food & Dining this month: **{currency}{food_exp:,.2f}**\n"
+            f"- Percentage of total monthly expenses: **{pct}%**\n"
+            f"- Daily food spending average: **{currency}{(food_exp / max(1, today.day)):,.2f}/day**\n\n"
+            f"**Recommendation**: Preparing meals at home 2 extra days a week can easily save you roughly **{currency}{(food_exp * 0.25):,.2f}** per month!"
+        )
+    elif any(k in q_lower for k in ["afford", "can i buy", "phone", "trip", "purchase"]):
+        reply = (
+            f"### 💳 Affordability Assessment\n\n"
+            f"Based on your current numbers for {today.strftime('%B %Y')}:\n\n"
+            f"- **Monthly Income**: {currency}{inc:,.2f}\n"
+            f"- **Total Spent So Far**: {currency}{exp:,.2f}\n"
+            f"- **Current Net Balance**: **{currency}{net:,.2f}**\n\n"
+            f"**Verdict**:\n"
+            f"{"You have a solid positive surplus! Ensure you keep at least 1 month of living expenses in reserve before making large discretionary purchases." if net > 10000 else "Your net margin is tight this month. It is safer to defer non-essential big purchases until next month or allocate towards your active savings goals first."}"
+        )
+    elif any(k in q_lower for k in ["cut", "save", "tips", "reduce", "budget"]):
+        reply = (
+            f"### 💡 Personalized Cost Reduction Strategy\n\n"
+            f"Looking at your top spending areas this month:\n\n"
+            + "".join([f"1. **{c[0]}**: {currency}{c[1]:,.2f} ({round(c[1]/(exp or 1)*100)}% of total)\n" for c in sorted_cats[:3]])
+            + f"\n**3 Quick Ways to Save More**:\n"
+            f"- Set a strict monthly budget on **{top_cat[0]}** in the [Budgets](/budgets) tab.\n"
+            f"- Review your recurring subscriptions in [Recurring Bills](/recurring) to cancel unused services.\n"
+            f"- Set an automated goal contribution for your top goals in [Savings Goals](/goals) right on payday."
+        )
+    else:
+        reply = (
+            f"### 📈 Comprehensive Monthly Financial Health Check\n\n"
+            f"Here is your financial status for **{today.strftime('%B %Y')}**:\n\n"
+            f"| Metric | Amount | Status |\n"
+            f"| :--- | :--- | :--- |\n"
+            f"| **Total Inflow** | {currency}{inc:,.2f} | Income |\n"
+            f"| **Total Outflow** | {currency}{exp:,.2f} | Expense |\n"
+            f"| **Net Savings** | **{currency}{net:,.2f}** | {'Surplus' if net >= 0 else 'Deficit'} |\n"
+            f"| **Savings Rate** | **{savings_rate}%** | {'Good' if savings_rate >= 20 else 'Needs Attention'} |\n\n"
+            f"- **Primary Expense Category**: **{top_cat[0]}** ({currency}{top_cat[1]:,.2f})\n"
+            f"- **Active Budgets**: {len(budgets)} set up\n"
+            f"- **Active Goals**: {len(goals)} in progress\n\n"
+            f"Ask me anything specific, like *'How can I save more?'*, *'How much did I spend on food?'*, or *'Check my 50/30/20 rule'*!"
+        )
+
+    return jsonify({"success": True, "answer": reply})
+
 
 
 @app.route("/", defaults={"path": ""})

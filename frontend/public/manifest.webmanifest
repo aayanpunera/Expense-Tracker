@@ -1,0 +1,19 @@
+{
+  "name": "SpendWise — Smart Expense & Personal Finance Tracker",
+  "short_name": "SpendWise",
+  "description": "Modern personal expense manager with SQLite persistence, receipt OCR, group expense splitting, and AI financial insights.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

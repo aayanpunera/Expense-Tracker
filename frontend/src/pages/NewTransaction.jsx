@@ -37,6 +37,27 @@ export default function NewTransaction() {
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-fill from scanned receipt if present
+  useEffect(() => {
+    const rawScanned = sessionStorage.getItem('spendwise_scanned_receipt');
+    if (rawScanned) {
+      try {
+        const parsed = JSON.parse(rawScanned);
+        if (parsed.title) setTitle(parsed.title);
+        if (parsed.amount) setAmount(parsed.amount.toString());
+        if (parsed.category) setCategory(parsed.category);
+        if (parsed.payment_method) setPaymentMethod(parsed.payment_method);
+        if (parsed.transaction_date) setTransactionDate(parsed.transaction_date);
+        if (parsed.note) setNote(parsed.note);
+        addToast('Pre-filled transaction details from your scanned receipt!', 'info');
+      } catch (e) {
+        console.warn('Failed to parse cached receipt');
+      } finally {
+        sessionStorage.removeItem('spendwise_scanned_receipt');
+      }
+    }
+  }, [addToast]);
+
   const handleAddPreset = (val) => {
     const current = parseFloat(amount) || 0;
     setAmount((current + val).toFixed(2));

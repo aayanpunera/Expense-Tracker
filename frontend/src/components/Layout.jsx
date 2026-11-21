@@ -3,11 +3,13 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import QuickAddModal from './QuickAddModal';
+import ReceiptScannerModal from './ReceiptScannerModal';
 
 export default function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState('expense');
+  const [scanReceiptOpen, setScanReceiptOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Global 'N' keyboard shortcut for Quick Add
@@ -28,6 +30,10 @@ export default function Layout() {
     setQuickAddOpen(true);
   };
 
+  const handleOpenScanReceipt = () => {
+    setScanReceiptOpen(true);
+  };
+
   const handleTransactionAdded = () => {
     setRefreshKey((prev) => prev + 1);
   };
@@ -39,11 +45,12 @@ export default function Layout() {
       <div className="app-container">
         <Topbar
           onOpenQuickAdd={handleOpenQuickAdd}
+          onOpenScanReceipt={handleOpenScanReceipt}
           toggleMobileMenu={() => setIsSidebarOpen((prev) => !prev)}
         />
 
         <main className="main-wrapper">
-          <Outlet context={{ onOpenQuickAdd: handleOpenQuickAdd, refreshKey }} />
+          <Outlet context={{ onOpenQuickAdd: handleOpenQuickAdd, onOpenScanReceipt: handleOpenScanReceipt, refreshKey }} />
         </main>
       </div>
 
@@ -51,6 +58,12 @@ export default function Layout() {
         isOpen={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
         defaultType={quickAddType}
+        onTransactionAdded={handleTransactionAdded}
+      />
+
+      <ReceiptScannerModal
+        isOpen={scanReceiptOpen}
+        onClose={() => setScanReceiptOpen(false)}
         onTransactionAdded={handleTransactionAdded}
       />
     </div>

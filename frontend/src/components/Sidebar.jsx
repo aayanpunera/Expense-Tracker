@@ -7,6 +7,8 @@ import {
   Target,
   Repeat,
   BarChart3,
+  Users,
+  Sparkles,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -21,6 +23,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { to: '/budgets', label: 'Monthly Budgets', icon: PieChart },
     { to: '/goals', label: 'Savings Goals', icon: Target },
     { to: '/recurring', label: 'Recurring Bills', icon: Repeat },
+    { to: '/groups', label: 'Split Bills & Groups', icon: Users },
+    { to: '/advisor', label: 'AI Financial Advisor', icon: Sparkles },
     { to: '/reports', label: 'Insights & Charts', icon: BarChart3 },
   ];
 

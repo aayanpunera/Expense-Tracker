@@ -8,6 +8,7 @@ import {
   Plus,
   Trash2,
   Edit3,
+  Camera,
 } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -35,6 +36,7 @@ export default function Transactions() {
   const { addToast } = useToast();
   const outletContext = useOutletContext();
   const onOpenQuickAdd = outletContext?.onOpenQuickAdd || (() => {});
+  const onOpenScanReceipt = outletContext?.onOpenScanReceipt || (() => {});
   const refreshKey = outletContext?.refreshKey || 0;
 
   const currency = user?.currency || '₹';
@@ -134,6 +136,15 @@ export default function Transactions() {
             <FileText size={14} />
             PDF Statement
           </a>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onOpenScanReceipt}
+            title="Scan physical bill or receipt with AI"
+          >
+            <Camera size={14} />
+            Scan Receipt
+          </button>
           <Link to="/transactions/new" className="btn btn-primary btn-sm">
             <Plus size={15} strokeWidth={2.5} />
             + Add Transaction Page

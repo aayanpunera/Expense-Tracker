@@ -10,6 +10,9 @@ import Budgets from './pages/Budgets';
 import Goals from './pages/Goals';
 import Recurring from './pages/Recurring';
 import Reports from './pages/Reports';
+import Groups from './pages/Groups';
+import GroupDetail from './pages/GroupDetail';
+import Advisor from './pages/Advisor';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -88,6 +91,9 @@ export default function App() {
           <Route path="budgets" element={<Budgets />} />
           <Route path="goals" element={<Goals />} />
           <Route path="recurring" element={<Recurring />} />
+          <Route path="groups" element={<Groups />} />
+          <Route path="groups/:id" element={<GroupDetail />} />
+          <Route path="advisor" element={<Advisor />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
         </Route>

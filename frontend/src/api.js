@@ -144,6 +144,64 @@ export const api = {
     get: () => request('/reports'),
   },
 
+  // Groups & Split Expenses
+  groups: {
+    list: () => request('/groups'),
+    get: (id) => request(`/groups/${id}`),
+    create: (data) =>
+      request('/groups', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    addMember: (groupId, data) =>
+      request(`/groups/${groupId}/members`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    addExpense: (groupId, data) =>
+      request(`/groups/${groupId}/expenses`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    deleteExpense: (groupId, expenseId) =>
+      request(`/groups/${groupId}/expenses/${expenseId}`, {
+        method: 'DELETE',
+      }),
+    settle: (groupId, data) =>
+      request(`/groups/${groupId}/settle`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    delete: (groupId) =>
+      request(`/groups/${groupId}`, {
+        method: 'DELETE',
+      }),
+  },
+
+  // Smart Notifications & Budget Alerts
+  notifications: {
+    get: () => request('/notifications'),
+  },
+
+  // Smart Receipt OCR & Parser
+  receipts: {
+    parse: (text, filename) =>
+      request('/receipts/parse', {
+        method: 'POST',
+        body: JSON.stringify({ text, filename }),
+      }),
+  },
+
+  // AI Financial Advisor & Insights
+  ai: {
+    ask: (question) =>
+      request('/ai/advisor', {
+        method: 'POST',
+        body: JSON.stringify({ question }),
+      }),
+    insights: () => request('/ai/insights'),
+  },
+
   // Settings & Tools
   settings: {
     get: () => request('/settings'),
