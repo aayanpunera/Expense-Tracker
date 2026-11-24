@@ -695,31 +695,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* Floating 4-pointed Star Deco (Matching Screenshot in Bottom-Right Corner) */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 28,
-          opacity: 0.65,
-          pointerEvents: 'none',
-          zIndex: 10,
-        }}
-      >
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M12 0L14.4 9.6L24 12L14.4 14.4L12 24L9.6 14.4L0 12L9.6 9.6L12 0Z"
-            fill="url(#sparkle-grad)"
-          />
-          <defs>
-            <linearGradient id="sparkle-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#ffffff" stopOpacity="0.8" />
-              <stop offset="1" stopColor="#818cf8" stopOpacity="0.4" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
     </div>
   );
 }
