@@ -27,12 +27,15 @@ import { Doughnut } from 'react-chartjs-2';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const outletContext = useOutletContext();
   const onOpenQuickAdd = outletContext?.onOpenQuickAdd || (() => {});
   const onOpenScanReceipt = outletContext?.onOpenScanReceipt || (() => {});
@@ -122,7 +125,7 @@ export default function Dashboard() {
           {
             data: values,
             backgroundColor: defaultColors.slice(0, labels.length),
-            borderColor: '#242c3d',
+            borderColor: isLight ? '#ffffff' : '#242c3d',
             borderWidth: 3,
             hoverOffset: 4,
           },
@@ -136,13 +139,13 @@ export default function Dashboard() {
         {
           data: [45, 25, 20, 10],
           backgroundColor: defaultColors,
-          borderColor: '#242c3d',
+          borderColor: isLight ? '#ffffff' : '#242c3d',
           borderWidth: 3,
           hoverOffset: 4,
         },
       ],
     };
-  }, [budgets]);
+  }, [budgets, isLight]);
 
   const donutOptions = {
     responsive: true,
@@ -153,10 +156,10 @@ export default function Dashboard() {
         display: false,
       },
       tooltip: {
-        backgroundColor: '#1b2230',
+        backgroundColor: isLight ? '#0f172a' : '#1b2230',
         titleColor: '#fff',
         bodyColor: '#00d29d',
-        borderColor: '#2e384c',
+        borderColor: isLight ? '#e2e8f0' : '#2e384c',
         borderWidth: 1,
         padding: 10,
         boxPadding: 4,
@@ -204,9 +207,6 @@ export default function Dashboard() {
             className="btn btn-secondary btn-sm"
             onClick={() => onOpenQuickAdd('income')}
             style={{
-              background: '#1a2336',
-              border: '1px solid #26324b',
-              color: '#ffffff',
               borderRadius: 8,
               padding: '8px 16px',
             }}
@@ -321,7 +321,7 @@ export default function Dashboard() {
                 <path
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
-                  stroke="#261b47"
+                  stroke={isLight ? '#e2e8f0' : '#261b47'}
                   strokeWidth="3.6"
                 />
                 <path
@@ -341,7 +341,7 @@ export default function Dashboard() {
                   placeItems: 'center',
                   fontSize: 12,
                   fontWeight: 800,
-                  color: '#ffffff',
+                  color: 'var(--text-main)',
                 }}
               >
                 {savingsRate}%
@@ -355,8 +355,8 @@ export default function Dashboard() {
       <div
         className="card"
         style={{
-          background: '#141a2c',
-          border: '1px solid #1f293d',
+          background: 'var(--bg-card-subtle)',
+          border: '1px solid var(--border-color)',
           borderRadius: 14,
           padding: '14px 20px',
           display: 'flex',
@@ -380,10 +380,10 @@ export default function Dashboard() {
           <Sparkles size={16} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <strong style={{ fontSize: 13.5, color: '#ffffff', display: 'block', marginBottom: 2 }}>
+          <strong style={{ fontSize: 13.5, color: 'var(--text-main)', display: 'block', marginBottom: 2 }}>
             AI Financial Insights
           </strong>
-          <p style={{ fontSize: 12, color: '#8a99ad', margin: 0, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
             Live 50/30/20 budget ratio alerts, runway forecast, and personalized cost-cutting recommendations available.
           </p>
         </div>
@@ -393,9 +393,7 @@ export default function Dashboard() {
           style={{
             fontSize: 12,
             padding: '6px 12px',
-            background: '#1a2336',
-            border: '1px solid #26324b',
-            color: '#00d29d',
+            color: 'var(--primary)',
           }}
         >
           Open Advisor →
@@ -406,22 +404,22 @@ export default function Dashboard() {
       <div
         className="card"
         style={{
-          background: 'rgba(36, 44, 60, 0.85)',
-          border: '1px solid #303b4e',
+          background: 'var(--bg-card-inserter)',
+          border: '1px solid var(--border-inserter)',
           borderRadius: 14,
           padding: '18px 22px',
           marginBottom: 24,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <strong style={{ fontSize: 14.5, fontWeight: 700, color: '#ffffff' }}>
+          <strong style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-main)' }}>
             Express Database Inserter
           </strong>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={onOpenScanReceipt}
-            style={{ fontSize: 11.5, padding: '4px 10px', background: '#1a2336', border: '1px solid #26324b' }}
+            style={{ fontSize: 11.5, padding: '4px 10px' }}
           >
             <Camera size={13} /> OCR Scan
           </button>
@@ -434,14 +432,14 @@ export default function Dashboard() {
             onChange={(e) => setQuickTitle(e.target.value)}
             placeholder="Quick Log (e.g. Momo, Coffee)"
             required
-            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '10px 14px', color: 'var(--text-main)' }}
           />
 
           <select
             className="select-field"
             value={quickCategory}
             onChange={(e) => setQuickCategory(e.target.value)}
-            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '10px 14px', color: 'var(--text-main)' }}
           >
             {categories.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -452,7 +450,7 @@ export default function Dashboard() {
             className="select-field"
             value={quickMethod}
             onChange={(e) => setQuickMethod(e.target.value)}
-            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '10px 14px', color: 'var(--text-main)' }}
           >
             {methods.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -468,7 +466,7 @@ export default function Dashboard() {
             onChange={(e) => setQuickAmount(e.target.value)}
             placeholder={`Amount (${currency})`}
             required
-            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '10px 14px', color: 'var(--text-main)' }}
           />
 
           <button
@@ -509,13 +507,13 @@ export default function Dashboard() {
       {/* Main Two-Column Layout (Matching Image Split) */}
       <div className="dashboard-grid">
         {/* Left Column: Recent Database Transactions */}
-        <div className="card" style={{ background: 'rgba(21, 27, 41, 0.95)', border: '1px solid #242c3d', borderRadius: 14, padding: '20px 24px' }}>
+        <div className="card" style={{ background: 'var(--bg-card-bottom)', border: '1px solid var(--border-card-bottom)', borderRadius: 14, padding: '20px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff', margin: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                 Recent Database Transactions
               </h2>
-              <p style={{ fontSize: 12, color: '#8a99ad', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0' }}>
                 Latest expenditures and deposits queried from SQLite
               </p>
             </div>
@@ -528,17 +526,17 @@ export default function Dashboard() {
             <div className="table-responsive">
               <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #242c3d' }}>
-                    <th style={{ color: '#8a99ad', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', padding: '10px 12px' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <th style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', padding: '10px 12px' }}>
                       TRANSACTION
                     </th>
-                    <th style={{ color: '#8a99ad', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', padding: '10px 12px' }}>
+                    <th style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', padding: '10px 12px' }}>
                       CATEGORY
                     </th>
-                    <th style={{ color: '#8a99ad', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', padding: '10px 12px' }}>
+                    <th style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', padding: '10px 12px' }}>
                       METHOD
                     </th>
-                    <th style={{ color: '#8a99ad', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', textAlign: 'right', padding: '10px 12px' }}>
+                    <th style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', textAlign: 'right', padding: '10px 12px' }}>
                       AMOUNT
                     </th>
                   </tr>
@@ -548,21 +546,22 @@ export default function Dashboard() {
                     <tr
                       key={t.id}
                       style={{
-                        borderBottom: '1px solid #1a2336',
+                        borderBottom: '1px solid var(--border-subtle)',
                         transition: 'background 0.15s',
                       }}
                     >
                       <td style={{ padding: '14px 12px' }}>
-                        <div style={{ fontWeight: 600, color: '#ffffff', fontSize: 13.5 }}>{t.title}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 13.5 }}>{t.title}</div>
                       </td>
                       <td style={{ padding: '14px 12px' }}>
-                        <span style={{ fontSize: 12.5, color: '#8a99ad' }}>{t.category}</span>
+                        <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t.category}</span>
                       </td>
                       <td style={{ padding: '14px 12px' }}>
                         <span
                           style={{
-                            background: '#1a2336',
-                            color: '#8a99ad',
+                            background: 'var(--bg-chip)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-subtle)',
                             padding: '3px 8px',
                             borderRadius: 6,
                             fontSize: 11.5,
@@ -588,7 +587,7 @@ export default function Dashboard() {
               </table>
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '36px 12px', color: '#8a99ad' }}>
+            <div style={{ textAlign: 'center', padding: '36px 12px', color: 'var(--text-muted)' }}>
               <p style={{ fontSize: 13, margin: '0 0 12px' }}>No transactions recorded yet in SQLite.</p>
               <button className="btn btn-secondary btn-sm" onClick={() => onOpenQuickAdd('expense')}>
                 + Insert First Record
@@ -600,12 +599,12 @@ export default function Dashboard() {
         {/* Right Column: Budget Health Donut & Savings Goals */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Budget Health Card with Donut Chart */}
-          <div className="card" style={{ background: 'rgba(21, 27, 41, 0.95)', border: '1px solid #242c3d', borderRadius: 14, padding: '20px 22px' }}>
+          <div className="card" style={{ background: 'var(--bg-card-bottom)', border: '1px solid var(--border-card-bottom)', borderRadius: 14, padding: '20px 22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 15.5, fontWeight: 700, color: '#ffffff', margin: 0 }}>
+              <h2 style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                 Budget Health
               </h2>
-              <Link to="/budgets" style={{ fontSize: 12, color: '#8a99ad', textDecoration: 'none' }}>
+              <Link to="/budgets" style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none' }}>
                 Manage
               </Link>
             </div>
@@ -620,36 +619,36 @@ export default function Dashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 99, background: '#00d29d' }} />
-                  <span style={{ color: '#8a99ad' }}>Food</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Food</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 99, background: '#06b6d4' }} />
-                  <span style={{ color: '#8a99ad' }}>Transport</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Transport</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 99, background: '#6366f1' }} />
-                  <span style={{ color: '#8a99ad' }}>Entertainment</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Entertainment</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 99, background: '#f59e0b' }} />
-                  <span style={{ color: '#8a99ad' }}>Bills</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Bills</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Savings Goals Card */}
-          <div className="card" style={{ background: 'rgba(21, 27, 41, 0.95)', border: '1px solid #242c3d', borderRadius: 14, padding: '20px 22px' }}>
+          <div className="card" style={{ background: 'var(--bg-card-bottom)', border: '1px solid var(--border-card-bottom)', borderRadius: 14, padding: '20px 22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
-                <h2 style={{ fontSize: 15.5, fontWeight: 700, color: '#ffffff', margin: 0 }}>
+                <h2 style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                   Savings Goals
                 </h2>
-                <p style={{ fontSize: 11.5, color: '#5c6c84', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: '2px 0 0' }}>
                   Target milestones
                 </p>
               </div>
-              <Link to="/goals" style={{ fontSize: 12, color: '#8a99ad', textDecoration: 'none' }}>
+              <Link to="/goals" style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none' }}>
                 View All
               </Link>
             </div>
@@ -659,12 +658,12 @@ export default function Dashboard() {
                 {goals.slice(0, 2).map((g) => {
                   const pct = Math.min(100, Math.round((g.current_amount / g.target_amount) * 100));
                   return (
-                    <div key={g.id} style={{ background: '#0e1422', borderRadius: 8, padding: '10px 12px' }}>
+                    <div key={g.id} style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '10px 12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600, color: '#fff' }}>{g.name}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{g.name}</span>
                         <span style={{ color: '#00d29d', fontWeight: 700 }}>{pct}%</span>
                       </div>
-                      <div style={{ height: 6, borderRadius: 99, background: '#1a2336', overflow: 'hidden' }}>
+                      <div style={{ height: 6, borderRadius: 99, background: 'var(--border-subtle)', overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${pct}%`, background: '#00d29d' }} />
                       </div>
                     </div>
@@ -673,7 +672,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '20px 10px' }}>
-                <p style={{ fontSize: 12, color: '#8a99ad', margin: '0 0 10px' }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>
                   Create savings goals to track future funds.
                 </p>
                 <Link

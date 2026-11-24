@@ -3,17 +3,30 @@
    Fintech Dark Aesthetic (Matching Custom UI Design)
    ========================================================================== */
 
-:root {
-  /* Color Palette - Matching Reference Screenshot Slate-Fintech Aesthetic */
-  --bg-app: #181f2c;
-  --bg-sidebar: #242b3b;
-  --bg-card: #202737;
+:root, html[data-theme="dark"] {
+  /* Color Palette - Dark Theme (Matching Reference Screenshot Slate-Fintech Aesthetic) */
+  --bg-app: #121723;
+  --bg-app-gradient: radial-gradient(130% 90% at 48% 0%, #36485e 0%, #252f40 32%, #19202e 65%, #121723 100%) no-repeat fixed;
+  --bg-sidebar: linear-gradient(180deg, #2d3647 0%, #242b3b 40%, #1f2533 100%);
+  --bg-card: rgba(32, 40, 56, 0.75);
+  --bg-card-solid: #202737;
   --bg-card-subtle: #19202f;
-  --bg-card-hover: #293245;
-  --bg-input: #1a2130;
-  
+  --bg-card-hover: rgba(49, 59, 79, 0.75);
+  --bg-card-top: rgba(43, 52, 70, 0.62);
+  --bg-card-bottom: rgba(21, 27, 41, 0.95);
+  --bg-card-inserter: rgba(36, 44, 60, 0.85);
+  --bg-input: #1b2230;
+  --bg-pill: rgba(45, 56, 75, 0.7);
+  --bg-pill-hover: rgba(53, 65, 87, 0.9);
+  --bg-chip: #1a2336;
+  --bg-chip-border: #26324b;
+
   --border-color: #2b3548;
   --border-subtle: #212a3a;
+  --border-card: rgba(255, 255, 255, 0.08);
+  --border-card-top: rgba(255, 255, 255, 0.09);
+  --border-card-bottom: #242c3d;
+  --border-inserter: #303b4e;
   --border-focus: #00d29d;
 
   --text-main: #ffffff;
@@ -21,12 +34,19 @@
   --text-dim: #607086;
   --text-inverse: #0e131f;
 
-  /* Accent & Status */
   --primary: #00d29d;
   --primary-hover: #00be8e;
   --primary-light: #34e4b5;
   --primary-subtle: rgba(0, 210, 157, 0.12);
   --primary-text: #00d29d;
+
+  --btn-secondary-bg: #1a2336;
+  --btn-secondary-border: #26324b;
+  --btn-secondary-color: #ffffff;
+
+  --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.25);
+  --chart-border: #242c3d;
+  --tooltip-bg: #1b2230;
 
   --accent: #6366f1;
   --accent-light: #818cf8;
@@ -67,17 +87,30 @@
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Light Theme Overrides (Optional fallback) */
+/* Light Theme Overrides */
 html[data-theme="light"] {
-  --bg-app: #f8fafc;
+  --bg-app: #f4f6fa;
+  --bg-app-gradient: radial-gradient(120% 80% at 50% 0%, #e9eef7 0%, #f4f6fa 45%, #f8fafc 100%) no-repeat fixed;
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-subtle: #f1f5f9;
-  --bg-card-hover: #f8fafc;
+  --bg-card-solid: #ffffff;
+  --bg-card-subtle: #f8fafc;
+  --bg-card-hover: #f1f5f9;
+  --bg-card-top: #ffffff;
+  --bg-card-bottom: #ffffff;
+  --bg-card-inserter: #ffffff;
   --bg-input: #ffffff;
-  
+  --bg-pill: #f1f5f9;
+  --bg-pill-hover: #e2e8f0;
+  --bg-chip: #f1f5f9;
+  --bg-chip-border: #e2e8f0;
+
   --border-color: #e2e8f0;
-  --border-subtle: #f1f5f9;
+  --border-subtle: #edf2f7;
+  --border-card: #e2e8f0;
+  --border-card-top: #e2e8f0;
+  --border-card-bottom: #e2e8f0;
+  --border-inserter: #e2e8f0;
   --border-focus: #00d29d;
 
   --text-main: #0f172a;
@@ -85,11 +118,19 @@ html[data-theme="light"] {
   --text-dim: #94a3b8;
   --text-inverse: #ffffff;
 
-  --primary: #059669;
-  --primary-hover: #047857;
+  --primary: #00b887;
+  --primary-hover: #009e73;
   --primary-light: #10b981;
-  --primary-subtle: #ecfdf5;
-  --primary-text: #065f46;
+  --primary-subtle: rgba(0, 184, 135, 0.12);
+  --primary-text: #047857;
+
+  --btn-secondary-bg: #f1f5f9;
+  --btn-secondary-border: #e2e8f0;
+  --btn-secondary-color: #0f172a;
+
+  --shadow-card: 0 2px 10px -1px rgba(0, 0, 0, 0.06);
+  --chart-border: #ffffff;
+  --tooltip-bg: #0f172a;
 
   --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
   --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.08);
@@ -109,8 +150,8 @@ body {
   font-size: 14.5px;
   line-height: 1.5;
   color: var(--text-main);
-  background: radial-gradient(130% 90% at 48% 0%, #36485e 0%, #252f40 32%, #19202e 65%, #121723 100%) no-repeat fixed;
-  background-color: #121723;
+  background: var(--bg-app-gradient);
+  background-color: var(--bg-app);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
@@ -139,8 +180,8 @@ button, input, select, textarea {
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: linear-gradient(180deg, #2d3647 0%, #242b3b 40%, #1f2533 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
   padding: 24px 18px;
   display: flex;
   flex-direction: column;
@@ -225,9 +266,9 @@ button, input, select, textarea {
 }
 
 .nav-item a.active {
-  background: rgba(0, 210, 157, 0.08);
-  border: 1px solid rgba(0, 210, 157, 0.35);
-  color: #ffffff;
+  background: rgba(0, 210, 157, 0.1);
+  border: 1px solid rgba(0, 210, 157, 0.4);
+  color: var(--text-main);
   font-weight: 700;
   box-shadow: 0 0 18px rgba(0, 210, 157, 0.12);
 }
@@ -251,7 +292,7 @@ button, input, select, textarea {
   gap: 12px;
   padding: 8px 12px;
   border-radius: var(--radius-full);
-  background: var(--bg-card);
+  background: var(--bg-card-solid);
   border: 1px solid var(--border-color);
 }
 
@@ -378,8 +419,8 @@ button, input, select, textarea {
 }
 
 .topbar-round-btn {
-  background: rgba(43, 53, 72, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-pill);
+  border: 1px solid var(--border-color);
   color: var(--text-muted);
   width: 38px;
   height: 38px;
@@ -394,7 +435,7 @@ button, input, select, textarea {
 .topbar-round-btn:hover {
   color: var(--text-main);
   border-color: var(--border-focus);
-  background: rgba(53, 65, 87, 0.9);
+  background: var(--bg-pill-hover);
 }
 
 .main-wrapper {
@@ -438,14 +479,14 @@ button, input, select, textarea {
 }
 
 .btn-secondary {
-  background: #1a2336;
-  color: #ffffff;
-  border-color: #26324b;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
+  border-color: var(--btn-secondary-border);
 }
 
 .btn-secondary:hover {
-  background: #222d45;
-  border-color: #313f5c;
+  background: var(--bg-card-hover);
+  border-color: var(--border-focus);
 }
 
 .btn-ghost {
@@ -489,12 +530,12 @@ button, input, select, textarea {
 }
 
 .btn-pill-dark {
-  background: #1a2336;
-  color: #ffffff;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
   font-weight: 600;
   border-radius: 99px;
   padding: 8px 18px;
-  border: 1px solid #26324b;
+  border: 1px solid var(--btn-secondary-border);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -503,8 +544,8 @@ button, input, select, textarea {
 }
 
 .btn-pill-dark:hover {
-  background: #222d45;
-  border-color: #313f5c;
+  background: var(--bg-card-hover);
+  border-color: var(--border-focus);
 }
 
 .btn-ghost {
@@ -613,23 +654,23 @@ button, input, select, textarea {
 }
 
 .stat-card {
-  background: rgba(43, 52, 70, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--bg-card-top);
+  border: 1px solid var(--border-card-top);
   backdrop-filter: blur(8px);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
   transition: var(--transition);
 }
 
 .stat-card:hover {
-  background: rgba(49, 59, 79, 0.75);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--bg-card-hover);
+  border-color: var(--border-focus);
   transform: translateY(-2px);
 }
 
@@ -721,8 +762,8 @@ button, input, select, textarea {
 }
 
 .preset-chip {
-  background: #1a2336;
-  border: 1px solid #26324b;
+  background: var(--bg-chip);
+  border: 1px solid var(--bg-chip-border);
   border-radius: var(--radius-full);
   padding: 4px 10px;
   font-size: 11.5px;
