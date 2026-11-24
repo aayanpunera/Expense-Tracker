@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Menu, Plus, Sun, Moon, Bell, Camera, AlertTriangle, AlertCircle, Info, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { Menu, Plus, Sun, Moon, Bell, Camera, AlertTriangle, AlertCircle, Info, CheckCircle2, ChevronRight, X, Search, Settings } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../api';
 
@@ -112,35 +112,24 @@ export default function Topbar({ onOpenQuickAdd, onOpenScanReceipt, toggleMobile
       </div>
 
       <div className="topbar-right">
-        {/* Scan Receipt Button */}
+        {/* Search shortcut button */}
         <button
-          className="btn btn-secondary btn-sm"
-          onClick={onOpenScanReceipt}
-          title="Scan bill or receipt using AI OCR"
+          className="topbar-round-btn"
+          onClick={() => navigate('/transactions')}
+          title="Search transactions"
         >
-          <Camera size={15} />
-          <span>Scan Receipt</span>
-        </button>
-
-        {/* Quick Add Button */}
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => onOpenQuickAdd('expense')}
-          title="Press 'N' anytime to add an expense"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          <span>+ Quick Add</span>
+          <Search size={16} />
         </button>
 
         {/* Smart Notifications Bell */}
         <div style={{ position: 'relative' }} ref={dropdownRef}>
           <button
-            className="theme-toggle-btn"
+            className="topbar-round-btn"
             onClick={() => setDropdownOpen((prev) => !prev)}
             title="Smart Budget & Bill Alerts"
             style={{ position: 'relative' }}
           >
-            <Bell size={18} />
+            <Bell size={16} />
             {unreadCount > 0 && (
               <span
                 style={{
@@ -151,8 +140,8 @@ export default function Topbar({ onOpenQuickAdd, onOpenScanReceipt, toggleMobile
                   color: '#fff',
                   fontSize: 10,
                   fontWeight: 800,
-                  width: 16,
-                  height: 16,
+                  width: 15,
+                  height: 15,
                   borderRadius: 99,
                   display: 'grid',
                   placeItems: 'center',
@@ -315,9 +304,32 @@ export default function Topbar({ onOpenQuickAdd, onOpenScanReceipt, toggleMobile
           )}
         </div>
 
+        {/* Quick Add Button */}
+        <button
+          className="btn btn-pill-dark btn-sm"
+          onClick={() => onOpenQuickAdd('expense')}
+          title="Press 'N' anytime to add an expense"
+        >
+          <Plus size={14} strokeWidth={2.5} />
+          <span>+ Quick Add</span>
+        </button>
+
+        {/* Settings Button */}
+        <button
+          className="topbar-round-btn"
+          onClick={() => navigate('/settings')}
+          title="Settings"
+        >
+          <Settings size={16} />
+        </button>
+
         {/* Theme Toggle Button */}
-        <button className="theme-toggle-btn" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}>
-          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        <button
+          className="topbar-round-btn"
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
       </div>
     </header>
