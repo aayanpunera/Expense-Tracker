@@ -2,7 +2,8 @@
  * Central API Client for SpendWise Backend REST API
  */
 
-const BASE_URL = '/api';
+const RAW_URL = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
+const BASE_URL = RAW_URL ? (RAW_URL.endsWith('/api') ? RAW_URL : `${RAW_URL}/api`) : '/api';
 
 function getHeaders() {
   const token = localStorage.getItem('spendwise_token');
