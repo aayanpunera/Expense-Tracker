@@ -122,7 +122,7 @@ export default function Dashboard() {
           {
             data: values,
             backgroundColor: defaultColors.slice(0, labels.length),
-            borderColor: '#151c2d',
+            borderColor: '#242c3d',
             borderWidth: 3,
             hoverOffset: 4,
           },
@@ -136,7 +136,7 @@ export default function Dashboard() {
         {
           data: [45, 25, 20, 10],
           backgroundColor: defaultColors,
-          borderColor: '#151c2d',
+          borderColor: '#242c3d',
           borderWidth: 3,
           hoverOffset: 4,
         },
@@ -153,10 +153,10 @@ export default function Dashboard() {
         display: false,
       },
       tooltip: {
-        backgroundColor: '#0e131f',
+        backgroundColor: '#1b2230',
         titleColor: '#fff',
         bodyColor: '#00d29d',
-        borderColor: '#1e283d',
+        borderColor: '#2e384c',
         borderWidth: 1,
         padding: 10,
         boxPadding: 4,
@@ -406,8 +406,8 @@ export default function Dashboard() {
       <div
         className="card"
         style={{
-          background: '#151c2d',
-          border: '1px solid #1e283d',
+          background: 'rgba(36, 44, 60, 0.85)',
+          border: '1px solid #303b4e',
           borderRadius: 14,
           padding: '18px 22px',
           marginBottom: 24,
@@ -434,14 +434,14 @@ export default function Dashboard() {
             onChange={(e) => setQuickTitle(e.target.value)}
             placeholder="Quick Log (e.g. Momo, Coffee)"
             required
-            style={{ background: '#0e1422', border: '1px solid #1e283d', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
           />
 
           <select
             className="select-field"
             value={quickCategory}
             onChange={(e) => setQuickCategory(e.target.value)}
-            style={{ background: '#0e1422', border: '1px solid #1e283d', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
           >
             {categories.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -452,7 +452,7 @@ export default function Dashboard() {
             className="select-field"
             value={quickMethod}
             onChange={(e) => setQuickMethod(e.target.value)}
-            style={{ background: '#0e1422', border: '1px solid #1e283d', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
           >
             {methods.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -468,7 +468,7 @@ export default function Dashboard() {
             onChange={(e) => setQuickAmount(e.target.value)}
             placeholder={`Amount (${currency})`}
             required
-            style={{ background: '#0e1422', border: '1px solid #1e283d', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
+            style={{ background: '#1b2230', border: '1px solid #303b4e', borderRadius: 8, padding: '10px 14px', color: '#fff' }}
           />
 
           <button
@@ -509,7 +509,7 @@ export default function Dashboard() {
       {/* Main Two-Column Layout (Matching Image Split) */}
       <div className="dashboard-grid">
         {/* Left Column: Recent Database Transactions */}
-        <div className="card" style={{ background: '#151c2d', border: '1px solid #1e283d', borderRadius: 14, padding: '20px 24px' }}>
+        <div className="card" style={{ background: 'rgba(21, 27, 41, 0.95)', border: '1px solid #242c3d', borderRadius: 14, padding: '20px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
             <div>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: '#ffffff', margin: 0 }}>
@@ -528,7 +528,7 @@ export default function Dashboard() {
             <div className="table-responsive">
               <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #1e283d' }}>
+                  <tr style={{ borderBottom: '1px solid #242c3d' }}>
                     <th style={{ color: '#8a99ad', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', padding: '10px 12px' }}>
                       TRANSACTION
                     </th>
@@ -600,7 +600,7 @@ export default function Dashboard() {
         {/* Right Column: Budget Health Donut & Savings Goals */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Budget Health Card with Donut Chart */}
-          <div className="card" style={{ background: '#151c2d', border: '1px solid #1e283d', borderRadius: 14, padding: '20px 22px' }}>
+          <div className="card" style={{ background: 'rgba(21, 27, 41, 0.95)', border: '1px solid #242c3d', borderRadius: 14, padding: '20px 22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontSize: 15.5, fontWeight: 700, color: '#ffffff', margin: 0 }}>
                 Budget Health
@@ -639,7 +639,7 @@ export default function Dashboard() {
           </div>
 
           {/* Savings Goals Card */}
-          <div className="card" style={{ background: '#151c2d', border: '1px solid #1e283d', borderRadius: 14, padding: '20px 22px' }}>
+          <div className="card" style={{ background: 'rgba(21, 27, 41, 0.95)', border: '1px solid #242c3d', borderRadius: 14, padding: '20px 22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
                 <h2 style={{ fontSize: 15.5, fontWeight: 700, color: '#ffffff', margin: 0 }}>

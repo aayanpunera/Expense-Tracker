@@ -4,21 +4,21 @@
    ========================================================================== */
 
 :root {
-  /* Color Palette - Default Dark Theme */
-  --bg-app: #0e131f;
-  --bg-sidebar: #0b0f19;
-  --bg-card: #151c2d;
-  --bg-card-subtle: #101624;
-  --bg-card-hover: #1a2336;
-  --bg-input: #0e1422;
+  /* Color Palette - Matching Reference Screenshot Slate-Fintech Aesthetic */
+  --bg-app: #181f2c;
+  --bg-sidebar: #242b3b;
+  --bg-card: #202737;
+  --bg-card-subtle: #19202f;
+  --bg-card-hover: #293245;
+  --bg-input: #1a2130;
   
-  --border-color: #1e283d;
-  --border-subtle: #162033;
+  --border-color: #2b3548;
+  --border-subtle: #212a3a;
   --border-focus: #00d29d;
 
   --text-main: #ffffff;
   --text-muted: #8a99ad;
-  --text-dim: #5c6c84;
+  --text-dim: #607086;
   --text-inverse: #0e131f;
 
   /* Accent & Status */
@@ -109,7 +109,8 @@ body {
   font-size: 14.5px;
   line-height: 1.5;
   color: var(--text-main);
-  background-color: var(--bg-app);
+  background: radial-gradient(130% 90% at 48% 0%, #36485e 0%, #252f40 32%, #19202e 65%, #121723 100%) no-repeat fixed;
+  background-color: #121723;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
@@ -129,6 +130,7 @@ button, input, select, textarea {
 .app-layout {
   display: flex;
   min-height: 100vh;
+  background: transparent;
 }
 
 .app-sidebar {
@@ -137,8 +139,8 @@ button, input, select, textarea {
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
+  background: linear-gradient(180deg, #2d3647 0%, #242b3b 40%, #1f2533 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
   padding: 24px 18px;
   display: flex;
   flex-direction: column;
@@ -324,14 +326,14 @@ button, input, select, textarea {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-app);
+  background: transparent;
 }
 
 /* Topbar */
 .topbar {
   height: var(--header-height);
-  background: var(--bg-app);
-  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding: 0 36px;
   display: flex;
   align-items: center;
@@ -376,8 +378,8 @@ button, input, select, textarea {
 }
 
 .topbar-round-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: rgba(43, 53, 72, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
   width: 38px;
   height: 38px;
@@ -392,7 +394,7 @@ button, input, select, textarea {
 .topbar-round-btn:hover {
   color: var(--text-main);
   border-color: var(--border-focus);
-  background: var(--bg-card-hover);
+  background: rgba(53, 65, 87, 0.9);
 }
 
 .main-wrapper {
@@ -611,21 +613,23 @@ button, input, select, textarea {
 }
 
 .stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: rgba(43, 52, 70, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(8px);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.25);
   position: relative;
   overflow: hidden;
   transition: var(--transition);
 }
 
 .stat-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(49, 59, 79, 0.75);
+  border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
 }
 
