@@ -3,19 +3,21 @@ SpendWise Root Application Entry Point
 Dispatches to backend.app
 """
 
+import os
 import sys
 from pathlib import Path
 
-BACKEND_DIR = Path(__file__).resolve().parent / "backend"
-sys.path.insert(0, str(BACKEND_DIR))
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-from app import app
+from backend.app import app
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     print("==================================================")
     print(" SpendWise Full-Stack Application Running")
-    print(" Backend: Flask REST API on Port 5000")
-    print(" Frontend: React SPA served from frontend/dist")
-    print(" Access Web App at: http://127.0.0.1:5000")
+    print(f" Backend: Flask REST API on Port {port}")
+    print(f" Access Web App at: http://127.0.0.1:{port}")
     print("==================================================")
-    app.run(debug=True, host="127.0.0.1", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=port)
